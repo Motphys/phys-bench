@@ -1,0 +1,30 @@
+[project]
+name = "phys-bench"
+version = "0.1.0"
+description = "Benchmark suite for different physical simulation libraries."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "motrixsim>=0.5.0",
+    "numpy-quaternion>=2024.0.8",
+    "imageio[ffmpeg]>=2.37.2",
+]
+
+[project.optional-dependencies]
+mujoco = ["mujoco>=3.3.3"]
+genesis = [
+    "genesis-world",
+    "torch===2.9.1+cu130",
+    "torchvision===0.24.1+cu130",
+    "torchaudio===2.9.1+cu130",
+]
+
+[tool.uv.sources]
+torch = { index = "pytorch" }
+torchvision = { index = "pytorch" }
+torchaudio = { index = "pytorch" }
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true

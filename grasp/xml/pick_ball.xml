@@ -1,0 +1,12 @@
+<mujoco model="panda scene pick ball">
+  <include file="../../assets/franka_emika_panda/panda.xml"/>
+  <include file="share.xml"/>
+  <compiler meshdir="../../assets/franka_emika_panda/assets"/>
+  <worldbody>
+    <body name="ball" pos="0.65 0 0.02">
+      <freejoint/>
+      <geom size="0.02" type="sphere" rgba="0.8 0.1 0.1 1"/>
+    </body>
+  </worldbody>
+
+</mujoco>
