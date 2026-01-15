@@ -1,0 +1,25 @@
+<mujoco model="bottle">
+
+    <asset>
+        <material name="bottle_material_0" rgba="0.113725 0.113725 0.113725 1" />
+        <material name="bottle_material_1" rgba="0.8 0.639216 0.156863 1" />
+        <mesh name="bottle_0" file="../bottle/bottle_0.obj" />
+        <mesh name="bottle_1" file="../bottle/bottle_1.obj" />
+        <mesh name="bottle_part_0" file="../bottle/part_0.obj" />
+        <mesh name="bottle_part_1" file="../bottle/part_1.obj" />
+        <mesh name="bottle_part_2" file="../bottle/part_2.obj" />
+        <mesh name="bottle_part_3" file="../bottle/part_3.obj" />
+    </asset>
+
+    <worldbody>
+        <body name="bottle" pos="0.65 0 0.036" quat="0.707107 0 0 0.707107">
+            <freejoint/>
+            <geom type="mesh" mesh="bottle_0" mass="0" class="visual" material="bottle_material_0" />
+            <geom type="mesh" mesh="bottle_1" mass="0" class="visual" material="bottle_material_1" />
+            <geom type="mesh" mesh="bottle_part_0" group="3" density="100"/>
+            <geom type="mesh" mesh="bottle_part_1" group="3" density="100"/>
+            <geom type="mesh" mesh="bottle_part_2" group="3" density="100"/>
+            <geom type="mesh" mesh="bottle_part_3" group="3" density="100"/>
+        </body>
+    </worldbody>
+</mujoco>

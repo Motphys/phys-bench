@@ -1,0 +1,11 @@
+<mujoco model="scene_bottle">
+    <compiler meshdir="assets"/>
+    <default>
+        <default class="bottle">
+            <default class="visual">
+                <geom type="mesh" contype="0" conaffinity="0" group="2"/>
+            </default>
+        </default>
+    </default>
+    <include file="bottle.xml"/>
+</mujoco>
