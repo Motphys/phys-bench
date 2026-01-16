@@ -80,7 +80,7 @@ def main(argv):
     elif _Obj.value == "bottle":
         obj = scene.add_entity(
             morph=gs.morphs.MJCF(
-                file="examples/assets/objects/scene_bottle.xml",
+                file="assets/objects/scene_bottle.xml",
             ),
         )
 

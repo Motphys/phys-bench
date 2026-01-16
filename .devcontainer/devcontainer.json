@@ -1,0 +1,44 @@
+{
+    "name": "Motphys Speed Benchmark",
+    "dockerComposeFile": "../docker_builder/docker-compose.yml",
+    "service": "benchmark",
+    "workspaceFolder": "/workspace/host",
+
+    // Use docker-compose to manage the container
+    "shutdownAction": "stopCompose",
+
+    // Forward ports for potential web interfaces or visualization
+    "appPort": [],
+
+    // Set environment variables
+    "remoteEnv": {
+        "DISPLAY": "${localEnv:DISPLAY}"
+    },
+
+    // Features to install (none needed, all in Dockerfile)
+    "features": {},
+
+    // Use 'postCreateCommand' to run initialization after container creation
+    "postCreateCommand": "echo 'Container ready! Run: cd /workspace/genesis-speed-benchmark && ./init.sh'",
+
+    // VS Code / Zed settings
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash"
+            },
+            "extensions": ["ms-python.python", "rust-lang.rust-analyzer"]
+        }
+    },
+
+    // Run as root (needed for GPU access)
+    "remoteUser": "root",
+
+    // Mount the X11 socket for GUI applications (Isaac Gym visualization)
+    "mounts": [
+        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,readonly"
+    ],
+
+    // GPU support
+    "runArgs": ["--gpus=all", "--network=host", "--ipc=host"]
+}

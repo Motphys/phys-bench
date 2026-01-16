@@ -1,0 +1,13 @@
+<mujoco model="panda scene pick bottle">
+  <include file="share.xml"/>
+
+  <asset>
+    <model name="franka" file="../../assets/franka_emika_panda/mjx_panda.xml"/>
+    <model name="bottle" file="../../assets/objects/bottle.xml"/>
+  </asset>
+
+  <worldbody>
+    <attach model="franka" prefix="" />
+    <attach model="bottle" prefix="" />
+  </worldbody>
+</mujoco>

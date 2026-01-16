@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isaacgym"
+version='1.0.preview4'
+description='GPU-accelerated simulation and reinforcement learning toolkit'
+readme = "README.md"
+requires-python = ">=3.8,<3.9"
+dependencies = [
+    "torchvision==0.18.1",
+    #"torchaudio==2.3.1",
+    "numpy==1.23.5",
+    "torch",
+    "scipy>=1.5.0",
+    "pyyaml>=5.3.1",
+    "pillow",
+    "imageio",
+    "ninja",
+]
+
+[tool.uv.sources]
+torch = { path = "/workspace/wheels/torch-2.3.0a0+git63d5e92-cp38-cp38-linux_x86_64.whl" }
+torchvision = { path = "/workspace/wheels/torchvision-0.18.1a0+126fc22-cp38-cp38-linux_x86_64.whl" }
+
+
+[tool.setuptools]
+packages = ["isaacgym"]
+
+[tool.setuptools.package-data]
+isaacgym = ["_bindings/src/gymtorch/*"]

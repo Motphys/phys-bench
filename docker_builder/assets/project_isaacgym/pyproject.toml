@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isaacgym-benchmark"
+version = "0.1.0"
+description = "IsaacGym benchmarking scripts"
+requires-python = ">=3.8,<3.9"
+license = {text = "MIT"}
+
+dependencies = [
+    "numpy",
+    "torch",
+    "torchvision",
+    "isaacgym",
+    "setuptools"
+]
+
+[tool.uv.sources]
+torch = { path = "/workspace/wheels/torch-2.3.0a0+git63d5e92-cp38-cp38-linux_x86_64.whl" }
+torchvision = { path = "/workspace/wheels/torchvision-0.18.1a0+126fc22-cp38-cp38-linux_x86_64.whl" }
+isaacgym = { path = "/workspace/third_party/isaacgym/python", editable = true }
