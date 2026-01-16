@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mjwarp-benchmark"
+version = "0.1.0"
+description = "MuJoCo Warp benchmarking scripts"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+dependencies = [
+    "numpy",
+    "mujoco",
+    "warp-lang",
+    "mujoco-warp",
+]
+
+[tool.uv.sources]
+mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp.git" }

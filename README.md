@@ -32,9 +32,115 @@ Three objects with different shapes and physical properties:
 | `ball`   | Spherical geometry     | Curved surface, rolling tendency     |
 | `bottle` | Complex cylinder shape | Cylindrical grasp, varying diameters |
 
-## Prerequisites
+## Docker Setup (Recommended)
 
-All dependencies are managed through uv's optional dependency groups. Install from the `motrixsim-py` directory.
+A unified Docker image is available with pre-configured environments for all physics engines, supporting RTX 50 series (sm_120).
+
+### Features
+
+- **Unified PyTorch Build**: Pre-compiled PyTorch with sm_120 support for Python 3.8/3.12
+- **Unified IsaacGym**: Source code at `/workspace/third_party/isaacgym` with editable install support
+- **Unified Environment Management**: 4 pre-initialized uv environments, ready to use
+
+### Installation
+
+Clone the repository with submodules (includes isaacgym):
+
+```bash
+git clone --recurse-submodules https://github.com/your-org/phys-bench.git
+cd phys-bench
+```
+
+If you've already cloned the repository, initialize submodules:
+
+```bash
+git submodule update --init --recursive
+```
+
+### Quick Start
+
+#### 1. Build the Image
+
+```bash
+cd docker_builder
+./build.sh
+```
+
+> First build takes ~3-4 hours (compiling PyTorch), subsequent builds take ~15-30 minutes
+
+#### 2. Run the Container
+
+```bash
+cd docker_builder
+./run.sh
+```
+
+#### 3. Connect with VSCode
+
+1. Install VSCode extension: **Dev Containers** or **Remote - Containers**
+2. After container is running, in VSCode select **Attach to Running Container** → `motphys-bench-base`
+3. Open folder: `/workspace/host/`
+4. Select Python interpreter (Ctrl+Shift+P):
+   - `/workspace/env/isaacgym/.venv/bin/python`
+   - `/workspace/env/motrixsim/.venv/bin/python`
+   - `/workspace/env/genesis/.venv/bin/python`
+   - `/workspace/env/mjwarp/.venv/bin/python`
+
+### Pre-configured Environments
+
+| Environment | Python Version | Purpose | Alias |
+|------------|----------------|---------|-------|
+| isaacgym | 3.8 | IsaacGym benchmark | `uv_isaacgym` |
+| motrixsim | 3.12 | MotrixSim benchmark | `uv_motrixsim` |
+| genesis | 3.12 | Genesis benchmark | `uv_genesis` |
+| mjwarp | 3.12 | MuJoCo Warp benchmark | `uv_mjwarp` |
+
+### Running Benchmarks in Docker
+
+Using aliases (recommended):
+
+```bash
+# Genesis benchmark
+uv_genesis run python grasp-bench/test_genesis_cube.py -B 1024
+
+# MotrixSim benchmark
+uv_motrixsim run python grasp-bench/test_motrixsim_cube.py -B 1024
+
+# IsaacGym benchmark
+uv_isaacgym run python grasp-bench/test_isaacgym_cube.py -B 1024
+
+# MJWarp benchmark
+uv_mjwarp run python grasp-bench/test_mjwarp_cube.py -B 1024
+```
+
+Using full commands:
+
+```bash
+uv --project /workspace/env/genesis run python script.py
+uv --project /workspace/env/motrixsim run python script.py
+```
+
+### Docker Image Information
+
+- **Image Name**: `docker.mp/motphys-bench-base:latest`
+- **Container Name**: `motphys-bench-base`
+- **Base Image**: `nvidia/cuda:12.8.0-runtime-ubuntu22.04`
+- **CUDA Version**: 12.8
+- **Supported Architectures**: sm_80, sm_86, sm_89, sm_90, sm_120 (RTX 50 series)
+
+### Docker Compose (Optional)
+
+```bash
+cd docker_builder
+docker-compose up -d
+docker exec -it motphys-bench-base /bin/bash
+```
+
+## Local Installation (Alternative)
+
+### Prerequisites
+
+All dependencies are managed through uv's optional dependency groups.
 
 ### All Dependencies
 
@@ -46,19 +152,51 @@ uv sync --all-extras
 
 This installs dependencies for Motrix, MuJoCo, and Genesis benchmarks.
 
-## Running the Benchmarks
+## Running the Benchmarks (Local Installation)
 
-Test with the Motrix physics engine (this project):
+### Speed Benchmarks
+
+Speed benchmarks test FPS performance with batched environments:
 
 ```bash
+# Genesis benchmark (1024 parallel environments)
+uv run grasp-bench/test_genesis_cube.py -B 1024
+uv run grasp-bench/test_genesis_ball.py -B 1024
+uv run grasp-bench/test_genesis_bottle.py -B 1024
 
+# MotrixSim benchmark
+uv run grasp-bench/test_motrixsim_cube.py -B 1024
+uv run grasp-bench/test_motrixsim_ball.py -B 1024
+
+# With visualization (slower)
+uv run grasp-bench/test_genesis_cube.py -B 1024 -v
+
+# With random actions
+uv run grasp-bench/test_genesis_cube.py -B 1024 -r
+```
+
+### Quality Benchmarks
+
+Quality benchmarks test grasp stability and physics accuracy:
+
+```bash
 # Test with cube (default)
 uv run grasp/grasp_shaking_test_{engine}.py --object=cube
 ```
 
 ## Command-Line Flags
 
-All benchmark scripts support the following flags:
+### Speed Benchmark Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-B` | int | `1` | Batch size (number of parallel environments) |
+| `-v` | boolean | `False` | Enable visualization |
+| `-r` | boolean | `False` | Enable random actions (50Hz control frequency) |
+| `-m` | boolean | `False` | Move along trajectory (cube only) |
+| `--mjcf` | boolean | `False` | Use mjx_panda.xml instead of panda.xml (cube only) |
+
+### Quality Benchmark Flags
 
 | Flag       | Type    | Default | Description                                                           |
 | ---------- | ------- | ------- | --------------------------------------------------------------------- |
@@ -70,7 +208,23 @@ All benchmark scripts support the following flags:
 
 ## Expected Output
 
-### Successful Test
+### Speed Benchmark Output
+
+```
+Warmup Phase 1: Grasping (100 steps)...
+Warmup Phase 2: Lifting (100 steps)...
+Benchmark: 500 steps...
+per env: 1,234.56 FPS
+total  : 1,264,189.44 FPS
+```
+
+The output shows:
+- **per env**: FPS for a single environment (physics simulation speed)
+- **total**: Aggregate FPS across all parallel environments (throughput)
+
+### Quality Benchmark Output
+
+#### Successful Test
 
 ```
 ✅ The shaking-grasp-cube-test passed.
@@ -78,7 +232,7 @@ All benchmark scripts support the following flags:
 
 The object was successfully grasped and remained above the threshold throughout the shake phase.
 
-### Failed Test
+#### Failed Test
 
 ```
 ❌ The shaking-grasp-cube-test failed.
@@ -86,13 +240,22 @@ The object was successfully grasped and remained above the threshold throughout 
 
 The object fell below the threshold during the shake phase, indicating grasp instability.
 
-### Video Output
+#### Video Output
 
 When `--record=True`, an MP4 video is saved showing the simulation: `{engine}_grasp_shake_{object}.mp4`
 
 ## Interpreting Results
 
 These benchmarks test different aspects of physics simulation:
+
+### Speed Benchmarks
+
+- **Per-env FPS**: Single environment simulation speed (physics engine efficiency)
+- **Total FPS**: Aggregate throughput across all parallel environments (scalability)
+- **Scalability**: How well does the engine scale with batch size?
+- **GPU Utilization**: Efficient use of GPU resources for parallel simulation
+
+### Quality Benchmarks
 
 - **Contact Stability**: How well does the engine maintain contact between gripper and object?
 - **Friction Modeling**: Are friction forces computed accurately to prevent slipping?

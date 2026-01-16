@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  benchmark:
+    image: docker.mp/motphys-bench-base:latest
+    container_name: motphys-bench-base
+
+    # GPU support
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    # Network and IPC settings for optimal performance
+    network_mode: host
+    ipc: host
+
+    # Increase shared memory and stack size
+    ulimits:
+      memlock: -1
+      stack: 67108864
+
+    # Mount host workspace
+    volumes:
+      - ../:/workspace/host
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro  # X11 for GUI apps
+
+    # Environment variables
+    environment:
+      - DISPLAY=${DISPLAY}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+
+    # Keep container running
+    stdin_open: true
+    tty: true
+
+    command: /bin/bash
