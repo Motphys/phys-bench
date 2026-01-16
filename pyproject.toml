@@ -12,6 +12,7 @@ dependencies = [
 
 [project.optional-dependencies]
 mujoco = ["mujoco>=3.3.3"]
+mujoco-warp = ["mujoco-warp"]
 genesis = [
     "genesis-world",
     "torch===2.9.1+cu130",
