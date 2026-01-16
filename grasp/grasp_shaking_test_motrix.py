@@ -103,6 +103,8 @@ def main(argv):
         step_cnt = 0
         sim_dt = _Dt.value  # Simulation timestep
 
+        print(data.dof_pos)
+
         def phys_step():
             nonlocal step_cnt, capture_index
             step_cnt += 1
