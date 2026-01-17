@@ -47,7 +47,7 @@ A unified Docker image is available with pre-configured environments for all phy
 Clone the repository with submodules (includes isaacgym):
 
 ```bash
-git clone --recurse-submodules https://github.com/your-org/phys-bench.git
+git clone --recurse-submodules https://github.com/motphys/phys-bench.git
 cd phys-bench
 ```
 
