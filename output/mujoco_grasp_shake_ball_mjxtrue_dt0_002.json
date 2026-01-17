@@ -1,0 +1,11 @@
+{
+  "video_path": "output/mujoco_grasp_shake_ball_mjxtrue_dt0_002.mp4",
+  "status": "failure",
+  "drop_time": 6.022,
+  "engine": "mujoco",
+  "object": "ball",
+  "task": "shake",
+  "mjx": true,
+  "dt": 0.002,
+  "timestamp": "2026-01-17T16:09:13.785483"
+}

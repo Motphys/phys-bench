@@ -1,0 +1,11 @@
+{
+  "video_path": "output/mujoco_grasp_shake_bottle_mjxtrue_dt0_010.mp4",
+  "status": "failure",
+  "drop_time": 4.0,
+  "engine": "mujoco",
+  "object": "bottle",
+  "task": "shake",
+  "mjx": true,
+  "dt": 0.01,
+  "timestamp": "2026-01-17T16:09:22.689662"
+}

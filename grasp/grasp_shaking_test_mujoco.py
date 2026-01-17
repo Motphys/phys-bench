@@ -19,6 +19,12 @@ import mujoco
 import mujoco.viewer
 import numpy as np
 from absl import app, flags
+from test_output_utils import (
+    ensure_output_directory,
+    generate_video_path,
+    save_test_result,
+    save_video,
+)
 
 _Obj = flags.DEFINE_string(
     "object", "cube", "object to grasp, Choices: [cube, ball, bottle]"
@@ -32,6 +38,12 @@ _Record = flags.DEFINE_boolean(
 _Dt = flags.DEFINE_float("dt", 0.002, "simulation timestep")
 _UseMJX = flags.DEFINE_boolean(
     "mjx", False, "Use mjx_panda.xml or panda.xml for the Franka robot model"
+)
+_Visual = flags.DEFINE_boolean(
+    "visual",
+    False,
+    "whether to visualize the simulation in a window, Choices: [True, False]",
+    short_name="V",
 )
 
 
@@ -60,72 +72,99 @@ def main(argv):
     data.ctrl[0:7] = init_qpos[0:7]
     data.ctrl[7] = init_qpos[7]
 
+    # Initialize output and tracking
+    output_dir = ensure_output_directory()
+    video_path = generate_video_path(
+        "mujoco", _Obj.value, _Shake.value, _UseMJX.value, _Dt.value, output_dir
+    )
+    test_passed = True
+    drop_time = None
+
     if _Record.value:
         frames = []
         renderer = mujoco.Renderer(model)
         renderer.update_scene(data, 0)
 
     task = "shaking-grasp" if _Shake.value else "slip-grasp"
-    with mujoco.viewer.launch_passive(model, data) as viewer:
-        step_cnt = 0
-        while viewer.is_running():
-            step_cnt += 1
-            step_start = time.time()
-            elapsed_time = step_cnt * model.opt.timestep
 
-            # Phase 1: Move from init to lift (0-1 second)
-            if 0 <= elapsed_time < 1:
-                ctrl_arm = lerp(init_qpos[:7], lift_qpos[:7], elapsed_time)
+    # Run simulation with or without viewer based on -v/--visual flag
+    viewer = None
+    if _Visual.value:
+        viewer = mujoco.viewer.launch_passive(model, data)
+
+    step_cnt = 0
+    while True:
+        # Check if viewer is still running (only applicable if viewer exists)
+        if viewer and not viewer.is_running():
+            break
+        step_cnt += 1
+        step_start = time.time()
+        elapsed_time = step_cnt * model.opt.timestep
+
+        # Phase 1: Move from init to lift (0-1 second)
+        if 0 <= elapsed_time < 1:
+            ctrl_arm = lerp(init_qpos[:7], lift_qpos[:7], elapsed_time)
+            data.ctrl[:7] = ctrl_arm
+        # Phase 2: Move from lift to grasp (1-2 seconds)
+        elif 1 <= elapsed_time < 2:
+            ctrl_arm = lerp(lift_qpos[:7], grasp_qpos[:7], (elapsed_time - 1))
+            data.ctrl[:7] = ctrl_arm
+        # Phase 3: Close gripper (2-3 seconds)
+        elif 2 <= elapsed_time < 3:
+            data.ctrl[7] = lerp(0.04, 0, (elapsed_time - 2))
+        # Phase 4: Lift object (3-4 seconds)
+        elif 3 <= elapsed_time < 4:
+            ctrl_arm = lerp(grasp_qpos[:7], lift_qpos[:7], (elapsed_time - 3))
+            data.ctrl[:7] = ctrl_arm
+        # Phase 5: Shake and verify (4-20 seconds)
+        elif 4 <= elapsed_time < 20:
+            if _Shake.value and step_cnt % 2 == 0:
+                ctrl_arm = lift_qpos[:7] + np.random.normal(0, 0.025, size=7)
                 data.ctrl[:7] = ctrl_arm
-            # Phase 2: Move from lift to grasp (1-2 seconds)
-            elif 1 <= elapsed_time < 2:
-                ctrl_arm = lerp(lift_qpos[:7], grasp_qpos[:7], (elapsed_time - 1))
-                data.ctrl[:7] = ctrl_arm
-            # Phase 3: Close gripper (2-3 seconds)
-            elif 2 <= elapsed_time < 3:
-                data.ctrl[7] = lerp(0.04, 0, (elapsed_time - 2))
-            # Phase 4: Lift object (3-4 seconds)
-            elif 3 <= elapsed_time < 4:
-                ctrl_arm = lerp(grasp_qpos[:7], lift_qpos[:7], (elapsed_time - 3))
-                data.ctrl[:7] = ctrl_arm
-            # Phase 5: Shake and verify (4-20 seconds)
-            elif 4 <= elapsed_time < 20:
-                if _Shake.value and step_cnt % 2 == 0:
-                    ctrl_arm = lift_qpos[:7] + np.random.normal(0, 0.025, size=7)
-                    data.ctrl[:7] = ctrl_arm
-                obj_pos = data.xpos[model.body(_Obj.value).id]
-                if obj_pos[2] < 0.04:
-                    print(f"❌ The {task}-{_Obj.value} failed.")
-                    break
-            # Phase 6: Success (>= 20 seconds)
-            elif elapsed_time >= 20:
-                print(f"✅ The {task}-{_Obj.value} passed.")
+            obj_pos = data.xpos[model.body(_Obj.value).id]
+            if obj_pos[2] < 0.04:
+                test_passed = False
+                drop_time = elapsed_time
+                print(f"❌ The {task}-{_Obj.value} failed.")
                 break
+        # Phase 6: Success (>= 20 seconds)
+        elif elapsed_time >= 20:
+            print(f"✅ The {task}-{_Obj.value} passed.")
+            break
 
-            # mj_step can be replaced with code that also evaluates
-            # a policy and applies a control signal before stepping the physics.
-            mujoco.mj_step(model, data)
+        # mj_step can be replaced with code that also evaluates
+        # a policy and applies a control signal before stepping the physics.
+        mujoco.mj_step(model, data)
 
-            # Pick up changes to the physics state, apply perturbations, update options from GUI.
+        # Sync viewer if present
+        if viewer:
             viewer.sync()
-
             # Rudimentary time keeping, will drift relative to wall clock.
             time_until_next_step = model.opt.timestep - (time.time() - step_start)
             if time_until_next_step > 0:
                 time.sleep(time_until_next_step)
 
-            if _Record.value and len(frames) < data.time * 30:
-                renderer.update_scene(data, 0)
-                frames.append(renderer.render().copy())
+        # Recording (works in both modes)
+        if _Record.value and len(frames) < data.time * 30:
+            renderer.update_scene(data, 0)
+            frames.append(renderer.render().copy())
+
+    # Clean up viewer context manager
+    if viewer:
+        viewer.close()
 
     if _Record.value:
-        import imageio
-
-        imageio.mimwrite(
-            f"mujoco_grasp_{'shake' if _Shake.value else 'slip'}_{_Obj.value}_noslip_iterations=1.mp4",
-            frames,
-            fps=30,
-            quality=8,
+        save_video(frames, video_path, fps=30, quality=8)
+        save_test_result(
+            video_path,
+            "success" if test_passed else "failure",
+            drop_time,
+            output_dir,
+            "mujoco",
+            _Obj.value,
+            _Shake.value,
+            _UseMJX.value,
+            _Dt.value,
         )
 
 

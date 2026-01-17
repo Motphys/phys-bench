@@ -1,0 +1,11 @@
+{
+  "video_path": "output/motrix_grasp_shake_cube_mjxtrue_dt0_010.mp4",
+  "status": "success",
+  "drop_time": null,
+  "engine": "motrix",
+  "object": "cube",
+  "task": "shake",
+  "mjx": true,
+  "dt": 0.01,
+  "timestamp": "2026-01-17T16:09:44.955387"
+}
