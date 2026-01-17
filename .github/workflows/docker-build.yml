@@ -55,7 +55,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./docker_builder
+          context: .
           file: ./docker_builder/Dockerfile
           push: ${{ github.event.inputs.push_image == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
