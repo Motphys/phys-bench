@@ -88,12 +88,12 @@ cd docker_builder
 
 ### Pre-configured Environments
 
-| Environment | Python Version | Purpose | Alias |
-|------------|----------------|---------|-------|
-| isaacgym | 3.8 | IsaacGym benchmark | `uv_isaacgym` |
-| motrixsim | 3.12 | MotrixSim benchmark | `uv_motrixsim` |
-| genesis | 3.12 | Genesis benchmark | `uv_genesis` |
-| mjwarp | 3.12 | MuJoCo Warp benchmark | `uv_mjwarp` |
+| Environment | Python Version | Purpose               | Alias          |
+| ----------- | -------------- | --------------------- | -------------- |
+| isaacgym    | 3.8            | IsaacGym benchmark    | `uv_isaacgym`  |
+| motrixsim   | 3.12           | MotrixSim benchmark   | `uv_motrixsim` |
+| genesis     | 3.12           | Genesis benchmark     | `uv_genesis`   |
+| mjwarp      | 3.12           | MuJoCo Warp benchmark | `uv_mjwarp`    |
 
 ### Running Benchmarks in Docker
 
@@ -184,16 +184,60 @@ Quality benchmarks test grasp stability and physics accuracy:
 uv run grasp/grasp_shaking_test_{engine}.py --object=cube
 ```
 
+### Running All Tests
+
+To run all grasp benchmarks across different engines, objects, and configurations:
+
+```bash
+# Run all tests with default settings
+uv run grasp/run_all_grasp_tests.py
+
+# Run tests for specific engines
+uv run grasp/run_all_grasp_tests.py --engines mujoco,motrix
+
+# Run tests for specific objects
+uv run grasp/run_all_grasp_tests.py --objects cube,bottle
+
+# Use custom timestep values
+uv run grasp/run_all_grasp_tests.py --dt-values 0.002
+
+# Disable shake test (use slip test instead)
+uv run grasp/run_all_grasp_tests.py --no-shake
+```
+
+This will:
+
+- Run tests across all engine/object/DT combinations
+- Generate video recordings for each test
+- Create a comprehensive HTML comparison report at `output/comparison_report.html`
+
+#### View Test Report
+
+**[📊 Click here to view the latest test report](https://htmlpreview.github.io/?https://raw.githubusercontent.com/Motphys/phys-bench/refs/heads/main/output/comparison_report.html)**
+
+The report includes:
+
+- **Engine Overview**: Success rate cards and configuration matrix for each physics engine
+- **Detailed Results**: Object-by-object breakdown with video evidence
+- **Interactive Navigation**: Quick tabs to jump between test objects
+- **Performance Metrics**: Drop times, success rates, and cross-engine comparisons
+
+To generate a new report locally:
+
+```bash
+uv run grasp/generate_report.py
+```
+
 ## Command-Line Flags
 
 ### Speed Benchmark Flags
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `-B` | int | `1` | Batch size (number of parallel environments) |
-| `-v` | boolean | `False` | Enable visualization |
-| `-r` | boolean | `False` | Enable random actions (50Hz control frequency) |
-| `-m` | boolean | `False` | Move along trajectory (cube only) |
+| Flag     | Type    | Default | Description                                        |
+| -------- | ------- | ------- | -------------------------------------------------- |
+| `-B`     | int     | `1`     | Batch size (number of parallel environments)       |
+| `-v`     | boolean | `False` | Enable visualization                               |
+| `-r`     | boolean | `False` | Enable random actions (50Hz control frequency)     |
+| `-m`     | boolean | `False` | Move along trajectory (cube only)                  |
 | `--mjcf` | boolean | `False` | Use mjx_panda.xml instead of panda.xml (cube only) |
 
 ### Quality Benchmark Flags
@@ -205,6 +249,7 @@ uv run grasp/grasp_shaking_test_{engine}.py --object=cube
 | `--record` | boolean | `False` | Record simulation to MP4 video file                                   |
 | `--dt`     | float   | `0.002` | Simulation timestep in seconds                                        |
 | `--mjx`    | boolean | `False` | Use MJX-compatible XML files for the Franka robot model               |
+| `-V`       | boolean | `False` | Visualize simulation in a window (same as `--visual`)                 |
 
 ## Expected Output
 
@@ -219,6 +264,7 @@ total  : 1,264,189.44 FPS
 ```
 
 The output shows:
+
 - **per env**: FPS for a single environment (physics simulation speed)
 - **total**: Aggregate FPS across all parallel environments (throughput)
 

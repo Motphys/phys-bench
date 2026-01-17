@@ -5,7 +5,7 @@ description = "Benchmark suite for different physical simulation libraries."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "motrixsim>=0.5.0",
+    "motrixsim===0.6.0b0",
     "numpy-quaternion>=2024.0.8",
     "imageio[ffmpeg]>=2.37.2",
 ]

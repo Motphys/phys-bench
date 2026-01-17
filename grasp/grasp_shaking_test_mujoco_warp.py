@@ -16,6 +16,12 @@
 import mujoco
 import numpy as np
 from absl import app, flags
+from test_output_utils import (
+    ensure_output_directory,
+    generate_video_path,
+    save_test_result,
+    save_video,
+)
 
 # Try to import mujoco_warp, provide helpful error if not available
 try:
@@ -95,6 +101,14 @@ def main(argv):
         mujoco.mj_forward(mjm, mjd_cpu)
         renderer.update_scene(mjd_cpu, 0)
 
+    # Initialize output and tracking
+    output_dir = ensure_output_directory()
+    video_path = generate_video_path(
+        "mujocowarp", _Obj.value, _Shake.value, _UseMJX.value, _Dt.value, output_dir
+    )
+    test_passed = True
+    drop_time = None
+
     task = "shaking-grasp" if _Shake.value else "slip-grasp"
 
     # Get object body index for final verification
@@ -145,6 +159,8 @@ def main(argv):
             if step_cnt % 100 == 0:  # Check every 0.2 seconds
                 obj_pos = d.xpos.numpy()[0, obj_body_id]
                 if obj_pos[2] < 0.04:
+                    test_passed = False
+                    drop_time = elapsed_time
                     print(f"❌ The {task}-{_Obj.value} failed.")
                     break
         # Phase 6: Success (>= 20 seconds)
@@ -166,13 +182,17 @@ def main(argv):
 
     # Save recording if enabled
     if _Record.value:
-        import imageio
-
-        imageio.mimwrite(
-            f"mujocowarp_grasp_{'shake' if _Shake.value else 'slip'}_{_Obj.value}.mp4",
-            frames,
-            fps=30,
-            quality=8,
+        save_video(frames, video_path, fps=30, quality=8)
+        save_test_result(
+            video_path,
+            "success" if test_passed else "failure",
+            drop_time,
+            output_dir,
+            "mujocowarp",
+            _Obj.value,
+            _Shake.value,
+            _UseMJX.value,
+            _Dt.value,
         )
 
 

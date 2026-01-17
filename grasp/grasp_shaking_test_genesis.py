@@ -16,6 +16,12 @@
 import genesis as gs
 import numpy as np
 from absl import app, flags
+from test_output_utils import (
+    ensure_output_directory,
+    generate_video_path,
+    save_test_result,
+    save_video,
+)
 
 _Obj = flags.DEFINE_string(
     "object", "cube", "object to grasp, Choices: [cube, ball, bottle]"
@@ -30,6 +36,12 @@ _Dt = flags.DEFINE_float("dt", 0.002, "simulation timestep")
 _UseMJX = flags.DEFINE_boolean(
     "mjx", False, "Use mjx_panda.xml or panda.xml for the Franka robot model"
 )
+_Visual = flags.DEFINE_boolean(
+    "visual",
+    False,
+    "whether to visualize the simulation in a window, Choices: [True, False]",
+    short_name="V",
+)
 
 
 def lerp(a, b, t):
@@ -43,7 +55,7 @@ def main(argv):
     sim_dt = _Dt.value  # Simulation timestep
     # Create scene with viewer
     scene = gs.Scene(
-        show_viewer=True,
+        show_viewer=_Visual.value,
         sim_options=gs.options.SimOptions(dt=sim_dt),
     )
 
@@ -112,6 +124,14 @@ def main(argv):
         frames = []
         recording_fps = 30
 
+    # Initialize output and tracking
+    output_dir = ensure_output_directory()
+    video_path = generate_video_path(
+        "genesis", _Obj.value, _Shake.value, _UseMJX.value, _Dt.value, output_dir
+    )
+    test_passed = True
+    drop_time = None
+
     # Simulation loop
     task = "shaking-grasp" if _Shake.value else "slip-grasp"
     step_cnt = 0
@@ -162,6 +182,8 @@ def main(argv):
             # Check if object fell
             obj_pos = obj.get_pos()
             if obj_pos[2] < 0.03:
+                test_passed = False
+                drop_time = elapsed_time
                 print(f"❌ The {task}-{_Obj.value} failed.")
                 break
 
@@ -174,7 +196,7 @@ def main(argv):
         interval = int(0.02 / sim_dt)  # render in 50 Hz
         update_visualizer = (
             interval == 0 or step_cnt % interval == 0 and not _Record.value
-        )
+        ) and _Visual.value
         scene.step(
             update_visualizer=update_visualizer, refresh_visualizer=update_visualizer
         )
@@ -186,13 +208,17 @@ def main(argv):
 
     # Save recording if enabled
     if _Record.value and len(frames) > 0:
-        import imageio
-
-        imageio.mimwrite(
-            f"genesis_grasp_{'shake' if _Shake.value else 'slip'}_{_Obj.value}.mp4",
-            frames,
-            fps=recording_fps,
-            quality=8,
+        save_video(frames, video_path, fps=recording_fps, quality=8)
+        save_test_result(
+            video_path,
+            "success" if test_passed else "failure",
+            drop_time,
+            output_dir,
+            "genesis",
+            _Obj.value,
+            _Shake.value,
+            _UseMJX.value,
+            _Dt.value,
         )
 
 

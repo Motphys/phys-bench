@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grasp Benchmark Comparison Report</title>
+    <style>
+        :root {
+            --success: #22c55e;
+            --failure: #ef4444;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+               background: var(--bg); color: var(--text); line-height: 1.5; }
+        html { scroll-behavior: smooth; }
+
+        /* Header styles - only title bar is sticky */
+        header { background: var(--card-bg); border-bottom: 1px solid var(--border);
+                 position: sticky; top: 0; z-index: 100; }
+        header h1 { padding: 1rem 2rem; font-size: 1.5rem; margin: 0; }
+
+        /* ===== Engine Overview Section ===== */
+        .engine-overview-section {
+            margin-bottom: 2rem;
+        }
+
+        /* Engine Success Cards */
+        .engine-cards-container {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .engine-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            min-width: 180px;
+            text-align: center;
+            border: 2px solid var(--border);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .engine-card.high-success {
+            border-color: var(--success);
+            background: linear-gradient(135deg, #ffffff 0%, #dcfce7 100%);
+        }
+
+        .engine-card.medium-success {
+            border-color: #eab308;
+            background: linear-gradient(135deg, #ffffff 0%, #fef9c3 100%);
+        }
+
+        .engine-card.low-success {
+            border-color: var(--failure);
+            background: linear-gradient(135deg, #ffffff 0%, #fee2e2 100%);
+        }
+
+        .engine-card .engine-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .engine-card .success-rate {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 0.5rem 0;
+        }
+
+        .engine-card .rate-high { color: var(--success); }
+        .engine-card .rate-medium { color: #eab308; }
+        .engine-card .rate-low { color: var(--failure); }
+
+        .engine-card .stats-detail {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        /* Engine Matrix Table */
+        .engine-matrix-wrapper {
+            overflow-x: auto;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .engine-matrix-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        .engine-matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .engine-matrix-table th,
+        .engine-matrix-table td {
+            padding: 0.75rem 1rem;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .engine-matrix-table thead tr.group-header th {
+            border-bottom: none;
+        }
+
+        .engine-matrix-table thead tr.sub-header th {
+            border-top: none;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        .engine-matrix-table .engine-col-header {
+            background: #f1f5f9;
+            font-weight: 700;
+            position: sticky;
+            left: 0;
+        }
+
+        .matrix-status-cell {
+            min-width: 80px;
+        }
+
+        .matrix-status-cell .status-icon {
+            font-size: 1.5rem;
+            display: block;
+        }
+
+        .matrix-status-cell .status-icon.success {
+            color: var(--success);
+        }
+
+        .matrix-status-cell .status-icon.failure {
+            color: var(--failure);
+        }
+
+        .matrix-status-cell .status-icon.missing {
+            color: #94a3b8;
+        }
+
+        .matrix-status-cell .drop-time {
+            font-size: 0.75rem;
+            color: var(--failure);
+            margin-top: 0.25rem;
+        }
+
+        /* ===== Quick Navigation ===== */
+        .quick-nav {
+            position: sticky;
+            top: 0;
+            z-index: 99;
+            background: var(--card-bg);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+        }
+
+        .object-tab {
+            padding: 0.5rem 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: var(--bg);
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        .object-tab:hover {
+            background: #e2e8f0;
+        }
+
+        .object-tab.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        /* ===== Main Content Area ===== */
+        main {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* ===== Object Section (Collapsible) ===== */
+        .detailed-results-section {
+            margin-top: 2rem;
+        }
+
+        .object-section {
+            margin: 3rem 0;
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .object-section summary {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .object-section[open] summary {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .object-section-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .object-section-header h2 {
+            margin: 0;
+            font-size: 1.75rem;
+        }
+
+        .object-stats {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        /* ===== DT Subsection ===== */
+        .dt-subsection {
+            padding: 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .dt-subsection:last-child {
+            border-bottom: none;
+        }
+
+        .dt-subsection-header {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dt-subsection-header::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 1.5rem;
+            background: #3b82f6;
+            border-radius: 2px;
+        }
+
+        /* ===== Engine Comparison Grid ===== */
+        .engine-comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .engine-result-card {
+            background: var(--bg);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .engine-result-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .engine-result-card.success {
+            border-color: var(--success);
+        }
+
+        .engine-result-card.failure {
+            border-color: var(--failure);
+        }
+
+        .engine-card-header {
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            background: var(--card-bg);
+        }
+
+        .engine-card-header .engine-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .engine-card-header .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .engine-card-header .status-badge.success {
+            background: var(--success);
+            color: white;
+        }
+
+        .engine-card-header .status-badge.failure {
+            background: var(--failure);
+            color: white;
+        }
+
+        .engine-card-video {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #000;
+        }
+
+        .engine-card-meta {
+            padding: 1rem;
+            font-size: 0.875rem;
+            background: var(--bg);
+        }
+
+        .engine-card-meta .drop-time {
+            color: var(--failure);
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        /* ===== Empty State ===== */
+        .empty-section {
+            text-align: center;
+            padding: 3rem;
+            color: #64748b;
+            font-style: italic;
+        }
+
+        /* ===== Responsive Design ===== */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.25rem;
+                padding: 0.75rem 1rem;
+            }
+
+            main {
+                padding: 1rem;
+            }
+
+            .engine-cards-container {
+                flex-direction: column;
+            }
+
+            .engine-card {
+                min-width: 100%;
+            }
+
+            .engine-comparison-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .object-section-header {
+                padding: 1rem;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .dt-subsection {
+                padding: 1rem;
+            }
+
+            .quick-nav {
+                padding: 0.5rem 1rem;
+            }
+
+            .engine-matrix-wrapper {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Grasp Benchmark Comparison Report</h1>
+    </header>
+
+    <nav class="quick-nav">
+        <button class="object-tab active" data-target="object-ball">Ball</button>
+<button class="object-tab " data-target="object-bottle">Bottle</button>
+<button class="object-tab " data-target="object-cube">Cube</button>
+    </nav>
+
+    <main>
+        
+    <section class="engine-overview-section">
+        <div class="engine-cards-container">
+        <div class="engine-card low-success">
+            <div class="engine-name">Genesis</div>
+            <div class="success-rate rate-low">33%</div>
+            <div class="stats-detail">2/6 tests</div>
+        </div>
+        
+        <div class="engine-card high-success">
+            <div class="engine-name">Motrix</div>
+            <div class="success-rate rate-high">100%</div>
+            <div class="stats-detail">6/6 tests</div>
+        </div>
+        
+        <div class="engine-card low-success">
+            <div class="engine-name">Mujoco</div>
+            <div class="success-rate rate-low">0%</div>
+            <div class="stats-detail">0/6 tests</div>
+        </div>
+        </div>
+        
+    <div class="engine-matrix-wrapper">
+        <div class="engine-matrix-title">Engine vs Configuration Matrix</div>
+        <table class="engine-matrix-table">
+            <thead>
+                <tr class="group-header">
+                    <th rowspan="2">Engine</th>
+                    <th colspan="2">Ball</th>
+                    <th colspan="2">Bottle</th>
+                    <th colspan="2">Cube</th>
+                </tr>
+                <tr class="sub-header">
+                    <th>dt=0.002</th>
+                    <th>dt=0.01</th>
+                    <th>dt=0.002</th>
+                    <th>dt=0.01</th>
+                    <th>dt=0.002</th>
+                    <th>dt=0.01</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="engine-col-header">Genesis</td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon failure">✗</span>
+                        <div class="drop-time">@8.3s</div>
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon failure">✗</span>
+                        <div class="drop-time">@6.4s</div>
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon failure">✗</span>
+                        <div class="drop-time">@17.9s</div>
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon failure">✗</span>
+                        <div class="drop-time">@10.3s</div>
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon success">✓</span>
+                        
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon success">✓</span>
+                        
+                    </td>
+                </tr>
+                <tr>
+                    <td class="engine-col-header">Motrix</td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon success">✓</span>
+                        
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon success">✓</span>
+                        
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon success">✓</span>
+                        
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon success">✓</span>
+                        
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon success">✓</span>
+                        
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon success">✓</span>
+                        
+                    </td>
+                </tr>
+                <tr>
+                    <td class="engine-col-header">Mujoco</td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon failure">✗</span>
+                        <div class="drop-time">@6.0s</div>
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon failure">✗</span>
+                        <div class="drop-time">@4.0s</div>
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon failure">✗</span>
+                        <div class="drop-time">@6.6s</div>
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon failure">✗</span>
+                        <div class="drop-time">@4.0s</div>
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon failure">✗</span>
+                        <div class="drop-time">@12.1s</div>
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon failure">✗</span>
+                        <div class="drop-time">@4.0s</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    </section>
+    
+        <div class="detailed-results-section">
+    <details class="object-section" id="object-ball" open>
+        <summary class="object-section-header">
+            <h2>Ball</h2>
+            <div class="object-stats">
+                <span>Configurations: 2</span>
+                <span>Total Tests: 6</span>
+            </div>
+        </summary>
+    <div class="dt-subsection">
+        <div class="dt-subsection-header">
+            Time Step: dt=0.002
+        </div>
+        <div class="engine-comparison-grid">
+    
+            <div class="engine-result-card failure">
+                <div class="engine-card-header">
+                    <span class="engine-name">Genesis</span>
+                    <span class="status-badge failure">FAILURE</span>
+                </div>
+                <video class="engine-card-video" controls src="genesis_grasp_shake_ball_mjxtrue_dt0_002.mp4"></video>
+                <div class="engine-card-meta">
+                    <div class="drop-time">Dropped at 8.30s</div>
+                </div>
+            </div>
+        
+            <div class="engine-result-card success">
+                <div class="engine-card-header">
+                    <span class="engine-name">Motrix</span>
+                    <span class="status-badge success">SUCCESS</span>
+                </div>
+                <video class="engine-card-video" controls src="motrix_grasp_shake_ball_mjxtrue_dt0_002.mp4"></video>
+                <div class="engine-card-meta">
+                    
+                </div>
+            </div>
+        
+            <div class="engine-result-card failure">
+                <div class="engine-card-header">
+                    <span class="engine-name">Mujoco</span>
+                    <span class="status-badge failure">FAILURE</span>
+                </div>
+                <video class="engine-card-video" controls src="mujoco_grasp_shake_ball_mjxtrue_dt0_002.mp4"></video>
+                <div class="engine-card-meta">
+                    <div class="drop-time">Dropped at 6.02s</div>
+                </div>
+            </div>
+        
+        </div>
+    </div>
+    
+    <div class="dt-subsection">
+        <div class="dt-subsection-header">
+            Time Step: dt=0.01
+        </div>
+        <div class="engine-comparison-grid">
+    
+            <div class="engine-result-card failure">
+                <div class="engine-card-header">
+                    <span class="engine-name">Mujoco</span>
+                    <span class="status-badge failure">FAILURE</span>
+                </div>
+                <video class="engine-card-video" controls src="mujoco_grasp_shake_ball_mjxtrue_dt0_010.mp4"></video>
+                <div class="engine-card-meta">
+                    <div class="drop-time">Dropped at 4.00s</div>
+                </div>
+            </div>
+        
+            <div class="engine-result-card success">
+                <div class="engine-card-header">
+                    <span class="engine-name">Motrix</span>
+                    <span class="status-badge success">SUCCESS</span>
+                </div>
+                <video class="engine-card-video" controls src="motrix_grasp_shake_ball_mjxtrue_dt0_010.mp4"></video>
+                <div class="engine-card-meta">
+                    
+                </div>
+            </div>
+        
+            <div class="engine-result-card failure">
+                <div class="engine-card-header">
+                    <span class="engine-name">Genesis</span>
+                    <span class="status-badge failure">FAILURE</span>
+                </div>
+                <video class="engine-card-video" controls src="genesis_grasp_shake_ball_mjxtrue_dt0_010.mp4"></video>
+                <div class="engine-card-meta">
+                    <div class="drop-time">Dropped at 6.37s</div>
+                </div>
+            </div>
+        
+        </div>
+    </div>
+    
+    </details>
+    <details class="object-section" id="object-bottle" open>
+        <summary class="object-section-header">
+            <h2>Bottle</h2>
+            <div class="object-stats">
+                <span>Configurations: 2</span>
+                <span>Total Tests: 6</span>
+            </div>
+        </summary>
+    <div class="dt-subsection">
+        <div class="dt-subsection-header">
+            Time Step: dt=0.002
+        </div>
+        <div class="engine-comparison-grid">
+    
+            <div class="engine-result-card failure">
+                <div class="engine-card-header">
+                    <span class="engine-name">Genesis</span>
+                    <span class="status-badge failure">FAILURE</span>
+                </div>
+                <video class="engine-card-video" controls src="genesis_grasp_shake_bottle_mjxtrue_dt0_002.mp4"></video>
+                <div class="engine-card-meta">
+                    <div class="drop-time">Dropped at 17.90s</div>
+                </div>
+            </div>
+        
+            <div class="engine-result-card failure">
+                <div class="engine-card-header">
+                    <span class="engine-name">Mujoco</span>
+                    <span class="status-badge failure">FAILURE</span>
+                </div>
+                <video class="engine-card-video" controls src="mujoco_grasp_shake_bottle_mjxtrue_dt0_002.mp4"></video>
+                <div class="engine-card-meta">
+                    <div class="drop-time">Dropped at 6.60s</div>
+                </div>
+            </div>
+        
+            <div class="engine-result-card success">
+                <div class="engine-card-header">
+                    <span class="engine-name">Motrix</span>
+                    <span class="status-badge success">SUCCESS</span>
+                </div>
+                <video class="engine-card-video" controls src="motrix_grasp_shake_bottle_mjxtrue_dt0_002.mp4"></video>
+                <div class="engine-card-meta">
+                    
+                </div>
+            </div>
+        
+        </div>
+    </div>
+    
+    <div class="dt-subsection">
+        <div class="dt-subsection-header">
+            Time Step: dt=0.01
+        </div>
+        <div class="engine-comparison-grid">
+    
+            <div class="engine-result-card failure">
+                <div class="engine-card-header">
+                    <span class="engine-name">Genesis</span>
+                    <span class="status-badge failure">FAILURE</span>
+                </div>
+                <video class="engine-card-video" controls src="genesis_grasp_shake_bottle_mjxtrue_dt0_010.mp4"></video>
+                <div class="engine-card-meta">
+                    <div class="drop-time">Dropped at 10.34s</div>
+                </div>
+            </div>
+        
+            <div class="engine-result-card success">
+                <div class="engine-card-header">
+                    <span class="engine-name">Motrix</span>
+                    <span class="status-badge success">SUCCESS</span>
+                </div>
+                <video class="engine-card-video" controls src="motrix_grasp_shake_bottle_mjxtrue_dt0_010.mp4"></video>
+                <div class="engine-card-meta">
+                    
+                </div>
+            </div>
+        
+            <div class="engine-result-card failure">
+                <div class="engine-card-header">
+                    <span class="engine-name">Mujoco</span>
+                    <span class="status-badge failure">FAILURE</span>
+                </div>
+                <video class="engine-card-video" controls src="mujoco_grasp_shake_bottle_mjxtrue_dt0_010.mp4"></video>
+                <div class="engine-card-meta">
+                    <div class="drop-time">Dropped at 4.00s</div>
+                </div>
+            </div>
+        
+        </div>
+    </div>
+    
+    </details>
+    <details class="object-section" id="object-cube" open>
+        <summary class="object-section-header">
+            <h2>Cube</h2>
+            <div class="object-stats">
+                <span>Configurations: 2</span>
+                <span>Total Tests: 6</span>
+            </div>
+        </summary>
+    <div class="dt-subsection">
+        <div class="dt-subsection-header">
+            Time Step: dt=0.002
+        </div>
+        <div class="engine-comparison-grid">
+    
+            <div class="engine-result-card failure">
+                <div class="engine-card-header">
+                    <span class="engine-name">Mujoco</span>
+                    <span class="status-badge failure">FAILURE</span>
+                </div>
+                <video class="engine-card-video" controls src="mujoco_grasp_shake_cube_mjxtrue_dt0_002.mp4"></video>
+                <div class="engine-card-meta">
+                    <div class="drop-time">Dropped at 12.05s</div>
+                </div>
+            </div>
+        
+            <div class="engine-result-card success">
+                <div class="engine-card-header">
+                    <span class="engine-name">Genesis</span>
+                    <span class="status-badge success">SUCCESS</span>
+                </div>
+                <video class="engine-card-video" controls src="genesis_grasp_shake_cube_mjxtrue_dt0_002.mp4"></video>
+                <div class="engine-card-meta">
+                    
+                </div>
+            </div>
+        
+            <div class="engine-result-card success">
+                <div class="engine-card-header">
+                    <span class="engine-name">Motrix</span>
+                    <span class="status-badge success">SUCCESS</span>
+                </div>
+                <video class="engine-card-video" controls src="motrix_grasp_shake_cube_mjxtrue_dt0_002.mp4"></video>
+                <div class="engine-card-meta">
+                    
+                </div>
+            </div>
+        
+        </div>
+    </div>
+    
+    <div class="dt-subsection">
+        <div class="dt-subsection-header">
+            Time Step: dt=0.01
+        </div>
+        <div class="engine-comparison-grid">
+    
+            <div class="engine-result-card failure">
+                <div class="engine-card-header">
+                    <span class="engine-name">Mujoco</span>
+                    <span class="status-badge failure">FAILURE</span>
+                </div>
+                <video class="engine-card-video" controls src="mujoco_grasp_shake_cube_mjxtrue_dt0_010.mp4"></video>
+                <div class="engine-card-meta">
+                    <div class="drop-time">Dropped at 4.00s</div>
+                </div>
+            </div>
+        
+            <div class="engine-result-card success">
+                <div class="engine-card-header">
+                    <span class="engine-name">Motrix</span>
+                    <span class="status-badge success">SUCCESS</span>
+                </div>
+                <video class="engine-card-video" controls src="motrix_grasp_shake_cube_mjxtrue_dt0_010.mp4"></video>
+                <div class="engine-card-meta">
+                    
+                </div>
+            </div>
+        
+            <div class="engine-result-card success">
+                <div class="engine-card-header">
+                    <span class="engine-name">Genesis</span>
+                    <span class="status-badge success">SUCCESS</span>
+                </div>
+                <video class="engine-card-video" controls src="genesis_grasp_shake_cube_mjxtrue_dt0_010.mp4"></video>
+                <div class="engine-card-meta">
+                    
+                </div>
+            </div>
+        
+        </div>
+    </div>
+    
+    </details></div>
+    </main>
+
+    <script>
+        // Object tab click navigation
+        document.querySelectorAll('.object-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetId = tab.dataset.target;
+                const targetSection = document.getElementById(targetId);
+
+                if (targetSection) {
+                    targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                    // Update active state
+                    document.querySelectorAll('.object-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                }
+            });
+        });
+
+        // Update active tab on scroll using Intersection Observer
+        const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -60% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const sectionId = entry.target.id;
+                    document.querySelectorAll('.object-tab').forEach(tab => {
+                        tab.classList.toggle('active', tab.dataset.target === sectionId);
+                    });
+                }
+            });
+        }, observerOptions);
+
+        // Observe all object sections
+        document.querySelectorAll('.object-section').forEach(section => {
+            observer.observe(section);
+        });
+    </script>
+</body>
+</html>

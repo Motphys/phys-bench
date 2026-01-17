@@ -18,8 +18,14 @@ from collections import deque
 import numpy as np
 from absl import app, flags
 
-from motrixsim import SceneData, load_model, run, step
+from motrixsim import SceneData, load_model, step
 from motrixsim.render import CaptureTask, RenderApp
+from test_output_utils import (
+    ensure_output_directory,
+    generate_video_path,
+    save_test_result,
+    save_video,
+)
 
 _Obj = flags.DEFINE_string(
     "object", "cube", "object to grasp, Choices: [cube, ball, bottle]"
@@ -33,6 +39,12 @@ _Record = flags.DEFINE_boolean(
 _Dt = flags.DEFINE_float("dt", 0.002, "simulation timestep")
 _UseMJX = flags.DEFINE_boolean(
     "mjx", False, "Use mjx_panda.xml or panda.xml for the Franka robot model"
+)
+_Visual = flags.DEFINE_boolean(
+    "visual",
+    False,
+    "whether to visualize the simulation in a window, Choices: [True, False]",
+    short_name="V",
 )
 
 
@@ -54,59 +66,61 @@ lift_qpos = np.array(
 # - Press and hold right button then drag to pan/translate the view
 def main(argv):
     # Create render window for visualization
-    with RenderApp() as render:
-        render.opt.set_left_panel_vis(True)
-
-        # The scene description file
-        prefix = _UseMJX.value and "mjx_" or ""
-        path = f"grasp/xml/{prefix}pick_{_Obj.value}.xml"
-        # Load the scene model
-        model = load_model(path)
-        # Set simulation timestep from command line argument
-        model.options.timestep = _Dt.value
-        cameras = model.cameras
+    show_visualizer = _Visual.value
+    headless = _Record.value and not show_visualizer
+    renderer = (
+        None
+        if not show_visualizer and not _Record.value
+        else RenderApp(headless=headless)
+    )
+    # The scene description file
+    prefix = _UseMJX.value and "mjx_" or ""
+    path = f"grasp/xml/{prefix}pick_{_Obj.value}.xml"
+    # Load the scene model
+    model = load_model(path)
+    # Set simulation timestep from command line argument
+    model.options.timestep = _Dt.value
+    cameras = model.cameras
+    if _Record.value:
         cameras[0].set_render_target("image", 320, 240)
+        frames = []
+        capture_tasks = deque()
+        capture_index = 0
+    # Create the render instance of the model
+    if renderer:
+        renderer.launch(model)
+    # Create the physics data of the model
+    data = SceneData(model)
+    panda = model.get_body("link0")
+    panda.set_dof_pos(data, init_qpos)
+    obj = model.get_body(_Obj.value)
+    gripper_actuator = model.get_actuator("actuator8")
 
-        # Create the render instance of the model
-        render.launch(model)
-        # Create the physics data of the model
-        data = SceneData(model)
+    def set_arm_ctrl(target_qpos):
+        ctrls = data.actuator_ctrls
+        ctrls[:7] = target_qpos
+        data.actuator_ctrls = ctrls
 
-        if _Record.value:
-            frames = []
-            capture_tasks = deque()
-            capture_index = 0
+    def set_gripper_ctrl(target_gripper):
+        gripper_actuator.set_ctrl(data, target_gripper)
 
-        panda_index = model.get_body_index("link0")
-        panda = model.get_body(panda_index)
-        panda.set_dof_pos(data, init_qpos)
+    set_arm_ctrl(init_qpos[:7])
+    set_gripper_ctrl(init_qpos[7])
 
-        object_index = model.get_body_index(_Obj.value)
-        obj = model.get_body(object_index)
+    task = "shaking-grasp" if _Shake.value else "slip-grasp"
+    # Initialize output directory and video path
+    output_dir = ensure_output_directory()
+    video_path = generate_video_path(
+        "motrix", _Obj.value, _Shake.value, _UseMJX.value, _Dt.value, output_dir
+    )
+    drop_time = None  # Track when object drops
+    step_cnt = 0
+    sim_dt = _Dt.value  # Simulation timestep
+    render_dt = 1.0 / 60.0  # Render at 30 Hz
+    phys_steps_per_render = int(render_dt / sim_dt)
 
-        def set_arm_ctrl(target_qpos):
-            start_actuator_index = model.get_actuator_index("actuator1")
-            for index, ctrl in enumerate(target_qpos):
-                actuator_index = start_actuator_index + index
-                actuator = model.get_actuator(actuator_index)
-                actuator.set_ctrl(data, ctrl)
-
-        def set_gripper_ctrl(target_gripper):
-            actuator_index = model.get_actuator_index("actuator8")
-            actuator = model.get_actuator(actuator_index)
-            actuator.set_ctrl(data, target_gripper)
-
-        set_arm_ctrl(init_qpos[:7])
-        set_gripper_ctrl(init_qpos[7])
-
-        task = "shaking-grasp" if _Shake.value else "slip-grasp"
-        step_cnt = 0
-        sim_dt = _Dt.value  # Simulation timestep
-
-        print(data.dof_pos)
-
-        def phys_step():
-            nonlocal step_cnt, capture_index
+    while True:
+        for i in range(phys_steps_per_render):
             step_cnt += 1
             elapsed_time = step_cnt * sim_dt
 
@@ -132,42 +146,49 @@ def main(argv):
                     set_arm_ctrl(ctrl_arm)
                 obj_pos = obj.get_pose(data)
                 if obj_pos[2] < 0.03:
+                    drop_time = elapsed_time
                     print(f"❌ The {task}-{_Obj.value}-test failed.")
                     if _Record.value:
-                        import imageio
-
-                        imageio.mimwrite(
-                            f"motrix_grasp_{'shake' if _Shake.value else 'slip'}_{_Obj.value}.mp4",
-                            frames,
-                            fps=30,
-                            quality=8,
+                        save_video(frames, video_path, fps=30, quality=8)
+                        save_test_result(
+                            video_path,
+                            "failure",
+                            drop_time,
+                            output_dir,
+                            "motrix",
+                            _Obj.value,
+                            _Shake.value,
+                            _UseMJX.value,
+                            _Dt.value,
                         )
                     exit(0)
             # Phase 6: Success (>= 20 seconds)
             elif elapsed_time >= 20:
                 print(f"✅ The {task}-{_Obj.value}-test passed.")
                 if _Record.value:
-                    import imageio
-
-                    imageio.mimwrite(
-                        f"motrix_grasp_{'shake' if _Shake.value else 'slip'}_{_Obj.value}.mp4",
-                        frames,
-                        fps=30,
-                        quality=8,
+                    save_video(frames, video_path, fps=30, quality=8)
+                    save_test_result(
+                        video_path,
+                        "success",
+                        None,
+                        output_dir,
+                        "motrix",
+                        _Obj.value,
+                        _Shake.value,
+                        _UseMJX.value,
+                        _Dt.value,
                     )
                 exit(0)
 
             # Physics world step
             step(model, data)
 
-        def render_func():
-            nonlocal capture_index
+        if renderer:
             if _Record.value and capture_index < step_cnt * sim_dt * 30:
-                rcam = render.get_camera(0)
+                rcam = renderer.get_camera(0)
                 capture_tasks.append((capture_index, rcam.capture()))
                 capture_index += 1
-
-            render.sync(data)
+            renderer.sync(data)
             if _Record.value:
                 while len(capture_tasks) > 0:
                     task: CaptureTask
@@ -180,8 +201,6 @@ def main(argv):
                             frames.append(img.pixels)
                     else:
                         break
-
-        run.render_loop(sim_dt, 60, phys_step, render_func)
 
 
 if __name__ == "__main__":
