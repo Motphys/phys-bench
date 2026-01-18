@@ -39,21 +39,31 @@ TEST_CONFIGS = [
         "engine": "mujoco",
         "script": "grasp/grasp_shaking_test_mujoco.py",
         "module_name": "grasp.grasp_shaking_test_mujoco",
+        "run_command": "uv",
     },
     # {
     #     "engine": "mujocowarp",
     #     "script": "grasp/grasp_shaking_test_mujoco_warp.py",
     #     "module_name": "grasp.grasp_shaking_test_mujoco_warp",
+    #     "run_command": "uv",
     # },
     {
         "engine": "motrix",
         "script": "grasp/grasp_shaking_test_motrix.py",
         "module_name": "grasp.grasp_shaking_test_motrix",
+        "run_command": "uv",
     },
     {
         "engine": "genesis",
         "script": "grasp/grasp_shaking_test_genesis.py",
         "module_name": "grasp.grasp_shaking_test_genesis",
+        "run_command": "uv",
+    },
+    {
+        "engine": "isaacsim",
+        "script": "grasp/grasp_shaking_test_isaacsim.py",
+        "module_name": "grasp.grasp_shaking_test_isaacsim",
+        "run_command": "uv --project envs/isaacsim run",
     },
 ]
 
@@ -150,15 +160,35 @@ def run_single_test(
     if not script_path.exists():
         return False, f"Script not found: {script_path}"
 
-    # Build command
-    cmd = [
-        sys.executable,
-        str(script_path),
-        f"--object={object_name}",
-        f"--dt={dt}",
-        "--mjx",
-        "--record",  # Always record to generate output for report
-    ]
+    # Build command based on engine's run_command
+    run_cmd = config.get("run_command", "uv run")
+
+    if run_cmd == "uv":
+        # For engines using main .venv: uv run script.py
+        cmd = ["uv", "run", str(script_path)]
+    elif "uv --project" in run_cmd:
+        # For IsaacSim: uv --project envs/isaacsim/ run python -u script.py
+        # Use -u for unbuffered output to ensure test results are captured
+        parts = run_cmd.split()
+        # Ensure project path ends with /
+        if parts[1] == "--project" and not parts[2].endswith("/"):
+            parts[2] += "/"
+        cmd = parts + ["python", "-u", str(script_path)]
+    else:
+        # Fallback to direct python execution
+        cmd = [sys.executable, str(script_path)]
+
+    # Add test arguments
+    cmd.extend(
+        [
+            f"--object={object_name}",
+            f"--dt={dt}",
+            "--record",  # Always record to generate output for report
+        ]
+    )
+    # IsaacSim doesn't support --mjx flag
+    if engine != "isaacsim":
+        cmd.append("--mjx")
 
     if shake:
         cmd.append("--shake")
@@ -207,7 +237,14 @@ def run_all_tests(
         Dict mapping test_key to {success, output, engine, object, dt, shake}
     """
     results = {}
-    total_tests = len(engines) * len(objects) * len(dt_values)
+    # Calculate actual total tests (accounting for engine-specific limitations)
+    total_tests = 0
+    for engine in engines:
+        for obj in objects:
+            # Skip bottle for IsaacSim (not yet supported)
+            if engine == "isaacsim" and obj == "bottle":
+                continue
+            total_tests += len(dt_values)
     completed = 0
 
     print(f"\n{'=' * 70}")
@@ -216,6 +253,9 @@ def run_all_tests(
 
     for engine in engines:
         for obj in objects:
+            # Skip bottle for IsaacSim (not yet supported)
+            if engine == "isaacsim" and obj == "bottle":
+                continue
             for dt in dt_values:
                 test_key = f"{engine}_{obj}_dt{dt:.3f}"
                 completed += 1

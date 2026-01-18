@@ -1,0 +1,107 @@
+# Multi-simulator Docker image WITHOUT IsaacGym (no PyTorch compilation)
+# Image: motphys-bench:no-isaacgym
+#
+# Provides pre-initialized uv environments at /workspace/env/:
+# - /workspace/env/motrixsim (Python 3.12)
+# - /workspace/env/genesis (Python 3.12)
+# - /workspace/env/mjwarp (Python 3.12)
+# - /workspace/env/isaacsim (Python 3.11)
+#
+# Build time: ~15-30 minutes (no PyTorch compilation needed)
+
+FROM nvidia/cuda:12.8.0-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV OMNI_KIT_ACCEPT_EULA=YES
+
+# Install system dependencies (including runtime libraries for OpenGL)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cuda-cupti-12-8 \
+    curl \
+    git \
+    libgl1-mesa-glx \
+    libgl1-mesa-dri \
+    libglu1-mesa \
+    libglvnd0 \
+    libglew2.2 \
+    libglfw3 \
+    mesa-utils \
+    libglib2.0-0 \
+    libopenblas0 \
+    libopenmpi3 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    software-properties-common \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python 3.11 and 3.12
+# Note: Python 3.12+ no longer has distutils (deprecated and removed)
+# We don't need Python 3.8 since we're not including IsaacGym
+RUN add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3.11 python3.11-dev python3.11-venv \
+    python3.12 python3.12-dev python3.12-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# Verify GLIBC version for IsaacSim (requires 2.35+)
+RUN ldd --version | head -1 | grep -qE "2\.3[5-9]|2\.[4-9][0-9]" || \
+    (echo "ERROR: GLIBC 2.35+ required for IsaacSim" && exit 1)
+
+# Install uv (fast Python package manager)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Create workspace directory
+WORKDIR /workspace
+
+# Copy project configuration assets (pyproject.toml files)
+# Note: Each pyproject.toml is copied individually before its use to maximize Docker layer caching
+
+# Copy utility scripts
+COPY docker_builder/scripts/ /workspace/scripts/
+RUN chmod +x /workspace/scripts/*.sh
+
+# Initialize uv environments for all projects
+RUN mkdir -p /workspace/env
+
+# Initialize other environments (Python 3.12)
+# Note: Skipping isaacgym since it requires custom PyTorch build
+
+# ===== MotrixSim (Python 3.12) =====
+RUN mkdir -p /workspace/env/motrixsim
+COPY docker_builder/assets/project_motrixsim/pyproject.toml /workspace/env/motrixsim/
+RUN cd /workspace/env/motrixsim && uv sync --python 3.12
+
+# ===== Genesis (Python 3.12) =====
+RUN mkdir -p /workspace/env/genesis
+COPY docker_builder/assets/project_genesis/pyproject.toml /workspace/env/genesis/
+RUN cd /workspace/env/genesis && uv sync --python 3.12
+
+# ===== Mjwarp (Python 3.12) =====
+RUN mkdir -p /workspace/env/mjwarp
+COPY docker_builder/assets/project_mjwarp/pyproject.toml /workspace/env/mjwarp/
+RUN cd /workspace/env/mjwarp && uv sync --python 3.12
+
+# ===== IsaacSim (Python 3.11) =====
+# IsaacSim is installed using pip (as per Isaac Lab documentation)
+# https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/pip_installation.html
+RUN mkdir -p /workspace/env/isaacsim
+COPY docker_builder/assets/project_isaacsim/pyproject.toml /workspace/env/isaacsim/
+RUN cd /workspace/env/isaacsim && uv sync --python 3.11
+
+# Setup uv project aliases (no need to activate, just run: uv_genesis run python xxx.py)
+RUN echo 'alias uv_motrixsim="uv --project /workspace/env/motrixsim"' >> /root/.bashrc && \
+    echo 'alias uv_genesis="uv --project /workspace/env/genesis"' >> /root/.bashrc && \
+    echo 'alias uv_mjwarp="uv --project /workspace/env/mjwarp"' >> /root/.bashrc && \
+    echo 'alias uv_isaacsim="uv --project /workspace/env/isaacsim"' >> /root/.bashrc
+
+WORKDIR /workspace
+
+# Use entrypoint script to display system info and run benchmarks on startup
+ENTRYPOINT ["/workspace/scripts/entrypoint.sh"]
+CMD ["/bin/bash"]
