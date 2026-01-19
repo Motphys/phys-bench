@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "phys-bench-isaacsim"
+version = "0.1.0"
+description = "IsaacSim benchmarking environment for phys-bench"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+license = { text = "MIT" }
+
+dependencies = [
+    # IsaacSim core
+    "isaacsim[all,extscache]==5.0.0",
+    # PyTorch for IsaacSim (CUDA 12.8)
+    "torch==2.7.0",
+    "torchvision==0.22.0",
+    # Common dependencies
+    "numpy",
+    "absl-py",
+    "imageio[ffmpeg]>=2.37.0",
+]
+
+[tool.uv.sources]
+# Configure PyTorch index for CUDA 12.8
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
+# Configure IsaacSim from NVIDIA index
+isaacsim = { index = "nvidia", marker = "sys_platform == 'linux'" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "nvidia"
+url = "https://pypi.nvidia.com"
+explicit = true
