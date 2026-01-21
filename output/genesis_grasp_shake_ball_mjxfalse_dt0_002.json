@@ -1,0 +1,11 @@
+{
+  "video_path": "output/genesis_grasp_shake_ball_mjxfalse_dt0_002.mp4",
+  "status": "failure",
+  "drop_time": 4.736,
+  "engine": "genesis",
+  "object": "ball",
+  "task": "shake",
+  "mjx": false,
+  "dt": 0.002,
+  "timestamp": "2026-01-21T15:05:15.685131"
+}

@@ -414,10 +414,10 @@
         
     <section class="engine-overview-section">
         <div class="engine-cards-container">
-        <div class="engine-card low-success">
+        <div class="engine-card medium-success">
             <div class="engine-name">Genesis</div>
-            <div class="success-rate rate-low">33%</div>
-            <div class="stats-detail">2/6 tests</div>
+            <div class="success-rate rate-medium">67%</div>
+            <div class="stats-detail">4/6 tests</div>
         </div>
         
         <div class="engine-card medium-success">
@@ -463,19 +463,19 @@
                     <td class="engine-col-header">Genesis</td>
                     <td class="matrix-status-cell">
                         <span class="status-icon failure">✗</span>
-                        <div class="drop-time">@8.3s</div>
+                        <div class="drop-time">@4.7s</div>
                     </td>
                     <td class="matrix-status-cell">
                         <span class="status-icon failure">✗</span>
-                        <div class="drop-time">@6.4s</div>
+                        <div class="drop-time">@4.0s</div>
                     </td>
                     <td class="matrix-status-cell">
-                        <span class="status-icon failure">✗</span>
-                        <div class="drop-time">@17.9s</div>
+                        <span class="status-icon success">✓</span>
+                        
                     </td>
                     <td class="matrix-status-cell">
-                        <span class="status-icon failure">✗</span>
-                        <div class="drop-time">@10.3s</div>
+                        <span class="status-icon success">✓</span>
+                        
                     </td>
                     <td class="matrix-status-cell">
                         <span class="status-icon success">✓</span>
@@ -544,7 +544,15 @@
                     <td class="engine-col-header">Mujoco</td>
                     <td class="matrix-status-cell">
                         <span class="status-icon failure">✗</span>
-                        <div class="drop-time">@6.0s</div>
+                        <div class="drop-time">@5.5s</div>
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon failure">✗</span>
+                        <div class="drop-time">@4.5s</div>
+                    </td>
+                    <td class="matrix-status-cell">
+                        <span class="status-icon failure">✗</span>
+                        <div class="drop-time">@10.5s</div>
                     </td>
                     <td class="matrix-status-cell">
                         <span class="status-icon failure">✗</span>
@@ -552,15 +560,7 @@
                     </td>
                     <td class="matrix-status-cell">
                         <span class="status-icon failure">✗</span>
-                        <div class="drop-time">@6.6s</div>
-                    </td>
-                    <td class="matrix-status-cell">
-                        <span class="status-icon failure">✗</span>
-                        <div class="drop-time">@4.0s</div>
-                    </td>
-                    <td class="matrix-status-cell">
-                        <span class="status-icon failure">✗</span>
-                        <div class="drop-time">@12.1s</div>
+                        <div class="drop-time">@12.2s</div>
                     </td>
                     <td class="matrix-status-cell">
                         <span class="status-icon failure">✗</span>
@@ -592,9 +592,9 @@
                     <span class="engine-name">Genesis</span>
                     <span class="status-badge failure">FAILURE</span>
                 </div>
-                <video class="engine-card-video" controls src="genesis_grasp_shake_ball_mjxtrue_dt0_002.mp4"></video>
+                <video class="engine-card-video" controls src="genesis_grasp_shake_ball_mjxfalse_dt0_002.mp4"></video>
                 <div class="engine-card-meta">
-                    <div class="drop-time">Dropped at 8.30s</div>
+                    <div class="drop-time">Dropped at 4.74s</div>
                 </div>
             </div>
         
@@ -614,9 +614,9 @@
                     <span class="engine-name">Mujoco</span>
                     <span class="status-badge failure">FAILURE</span>
                 </div>
-                <video class="engine-card-video" controls src="mujoco_grasp_shake_ball_mjxtrue_dt0_002.mp4"></video>
+                <video class="engine-card-video" controls src="mujoco_grasp_shake_ball_mjxfalse_dt0_002.mp4"></video>
                 <div class="engine-card-meta">
-                    <div class="drop-time">Dropped at 6.02s</div>
+                    <div class="drop-time">Dropped at 5.54s</div>
                 </div>
             </div>
         
@@ -625,7 +625,7 @@
                     <span class="engine-name">Motrix</span>
                     <span class="status-badge success">SUCCESS</span>
                 </div>
-                <video class="engine-card-video" controls src="motrix_grasp_shake_ball_mjxtrue_dt0_002.mp4"></video>
+                <video class="engine-card-video" controls src="motrix_grasp_shake_ball_mjxfalse_dt0_002.mp4"></video>
                 <div class="engine-card-meta">
                     
                 </div>
@@ -640,25 +640,25 @@
         </div>
         <div class="engine-comparison-grid">
     
+            <div class="engine-result-card failure">
+                <div class="engine-card-header">
+                    <span class="engine-name">Genesis</span>
+                    <span class="status-badge failure">FAILURE</span>
+                </div>
+                <video class="engine-card-video" controls src="genesis_grasp_shake_ball_mjxfalse_dt0_010.mp4"></video>
+                <div class="engine-card-meta">
+                    <div class="drop-time">Dropped at 4.00s</div>
+                </div>
+            </div>
+        
             <div class="engine-result-card success">
                 <div class="engine-card-header">
                     <span class="engine-name">Motrix</span>
                     <span class="status-badge success">SUCCESS</span>
                 </div>
-                <video class="engine-card-video" controls src="motrix_grasp_shake_ball_mjxtrue_dt0_010.mp4"></video>
+                <video class="engine-card-video" controls src="motrix_grasp_shake_ball_mjxfalse_dt0_010.mp4"></video>
                 <div class="engine-card-meta">
                     
-                </div>
-            </div>
-        
-            <div class="engine-result-card failure">
-                <div class="engine-card-header">
-                    <span class="engine-name">Mujoco</span>
-                    <span class="status-badge failure">FAILURE</span>
-                </div>
-                <video class="engine-card-video" controls src="mujoco_grasp_shake_ball_mjxtrue_dt0_010.mp4"></video>
-                <div class="engine-card-meta">
-                    <div class="drop-time">Dropped at 4.00s</div>
                 </div>
             </div>
         
@@ -675,12 +675,12 @@
         
             <div class="engine-result-card failure">
                 <div class="engine-card-header">
-                    <span class="engine-name">Genesis</span>
+                    <span class="engine-name">Mujoco</span>
                     <span class="status-badge failure">FAILURE</span>
                 </div>
-                <video class="engine-card-video" controls src="genesis_grasp_shake_ball_mjxtrue_dt0_010.mp4"></video>
+                <video class="engine-card-video" controls src="mujoco_grasp_shake_ball_mjxfalse_dt0_010.mp4"></video>
                 <div class="engine-card-meta">
-                    <div class="drop-time">Dropped at 6.37s</div>
+                    <div class="drop-time">Dropped at 4.47s</div>
                 </div>
             </div>
         
@@ -702,6 +702,17 @@
         </div>
         <div class="engine-comparison-grid">
     
+            <div class="engine-result-card success">
+                <div class="engine-card-header">
+                    <span class="engine-name">Genesis</span>
+                    <span class="status-badge success">SUCCESS</span>
+                </div>
+                <video class="engine-card-video" controls src="genesis_grasp_shake_bottle_mjxfalse_dt0_002.mp4"></video>
+                <div class="engine-card-meta">
+                    
+                </div>
+            </div>
+        
             <div class="engine-result-card failure">
                 <div class="engine-card-header">
                     <span class="engine-name">Isaacsim</span>
@@ -715,23 +726,12 @@
         
             <div class="engine-result-card failure">
                 <div class="engine-card-header">
-                    <span class="engine-name">Genesis</span>
-                    <span class="status-badge failure">FAILURE</span>
-                </div>
-                <video class="engine-card-video" controls src="genesis_grasp_shake_bottle_mjxtrue_dt0_002.mp4"></video>
-                <div class="engine-card-meta">
-                    <div class="drop-time">Dropped at 17.90s</div>
-                </div>
-            </div>
-        
-            <div class="engine-result-card failure">
-                <div class="engine-card-header">
                     <span class="engine-name">Mujoco</span>
                     <span class="status-badge failure">FAILURE</span>
                 </div>
-                <video class="engine-card-video" controls src="mujoco_grasp_shake_bottle_mjxtrue_dt0_002.mp4"></video>
+                <video class="engine-card-video" controls src="mujoco_grasp_shake_bottle_mjxfalse_dt0_002.mp4"></video>
                 <div class="engine-card-meta">
-                    <div class="drop-time">Dropped at 6.60s</div>
+                    <div class="drop-time">Dropped at 10.45s</div>
                 </div>
             </div>
         
@@ -740,7 +740,7 @@
                     <span class="engine-name">Motrix</span>
                     <span class="status-badge success">SUCCESS</span>
                 </div>
-                <video class="engine-card-video" controls src="motrix_grasp_shake_bottle_mjxtrue_dt0_002.mp4"></video>
+                <video class="engine-card-video" controls src="motrix_grasp_shake_bottle_mjxfalse_dt0_002.mp4"></video>
                 <div class="engine-card-meta">
                     
                 </div>
@@ -760,20 +760,31 @@
                     <span class="engine-name">Mujoco</span>
                     <span class="status-badge failure">FAILURE</span>
                 </div>
-                <video class="engine-card-video" controls src="mujoco_grasp_shake_bottle_mjxtrue_dt0_010.mp4"></video>
+                <video class="engine-card-video" controls src="mujoco_grasp_shake_bottle_mjxfalse_dt0_010.mp4"></video>
                 <div class="engine-card-meta">
                     <div class="drop-time">Dropped at 4.00s</div>
                 </div>
             </div>
         
-            <div class="engine-result-card failure">
+            <div class="engine-result-card success">
                 <div class="engine-card-header">
                     <span class="engine-name">Genesis</span>
-                    <span class="status-badge failure">FAILURE</span>
+                    <span class="status-badge success">SUCCESS</span>
                 </div>
-                <video class="engine-card-video" controls src="genesis_grasp_shake_bottle_mjxtrue_dt0_010.mp4"></video>
+                <video class="engine-card-video" controls src="genesis_grasp_shake_bottle_mjxfalse_dt0_010.mp4"></video>
                 <div class="engine-card-meta">
-                    <div class="drop-time">Dropped at 10.34s</div>
+                    
+                </div>
+            </div>
+        
+            <div class="engine-result-card success">
+                <div class="engine-card-header">
+                    <span class="engine-name">Motrix</span>
+                    <span class="status-badge success">SUCCESS</span>
+                </div>
+                <video class="engine-card-video" controls src="motrix_grasp_shake_bottle_mjxfalse_dt0_010.mp4"></video>
+                <div class="engine-card-meta">
+                    
                 </div>
             </div>
         
@@ -785,17 +796,6 @@
                 <video class="engine-card-video" controls src="isaacsim_grasp_shake_bottle_mjxtrue_dt0_010.mp4"></video>
                 <div class="engine-card-meta">
                     <div class="drop-time">Dropped at 4.01s</div>
-                </div>
-            </div>
-        
-            <div class="engine-result-card success">
-                <div class="engine-card-header">
-                    <span class="engine-name">Motrix</span>
-                    <span class="status-badge success">SUCCESS</span>
-                </div>
-                <video class="engine-card-video" controls src="motrix_grasp_shake_bottle_mjxtrue_dt0_010.mp4"></video>
-                <div class="engine-card-meta">
-                    
                 </div>
             </div>
         
@@ -819,32 +819,21 @@
     
             <div class="engine-result-card success">
                 <div class="engine-card-header">
-                    <span class="engine-name">Motrix</span>
+                    <span class="engine-name">Genesis</span>
                     <span class="status-badge success">SUCCESS</span>
                 </div>
-                <video class="engine-card-video" controls src="motrix_grasp_shake_cube_mjxtrue_dt0_002.mp4"></video>
+                <video class="engine-card-video" controls src="genesis_grasp_shake_cube_mjxfalse_dt0_002.mp4"></video>
                 <div class="engine-card-meta">
                     
                 </div>
             </div>
         
-            <div class="engine-result-card failure">
-                <div class="engine-card-header">
-                    <span class="engine-name">Mujoco</span>
-                    <span class="status-badge failure">FAILURE</span>
-                </div>
-                <video class="engine-card-video" controls src="mujoco_grasp_shake_cube_mjxtrue_dt0_002.mp4"></video>
-                <div class="engine-card-meta">
-                    <div class="drop-time">Dropped at 12.05s</div>
-                </div>
-            </div>
-        
             <div class="engine-result-card success">
                 <div class="engine-card-header">
-                    <span class="engine-name">Genesis</span>
+                    <span class="engine-name">Motrix</span>
                     <span class="status-badge success">SUCCESS</span>
                 </div>
-                <video class="engine-card-video" controls src="genesis_grasp_shake_cube_mjxtrue_dt0_002.mp4"></video>
+                <video class="engine-card-video" controls src="motrix_grasp_shake_cube_mjxfalse_dt0_002.mp4"></video>
                 <div class="engine-card-meta">
                     
                 </div>
@@ -861,6 +850,17 @@
                 </div>
             </div>
         
+            <div class="engine-result-card failure">
+                <div class="engine-card-header">
+                    <span class="engine-name">Mujoco</span>
+                    <span class="status-badge failure">FAILURE</span>
+                </div>
+                <video class="engine-card-video" controls src="mujoco_grasp_shake_cube_mjxfalse_dt0_002.mp4"></video>
+                <div class="engine-card-meta">
+                    <div class="drop-time">Dropped at 12.18s</div>
+                </div>
+            </div>
+        
         </div>
     </div>
     
@@ -870,36 +870,14 @@
         </div>
         <div class="engine-comparison-grid">
     
-            <div class="engine-result-card success">
-                <div class="engine-card-header">
-                    <span class="engine-name">Isaacsim</span>
-                    <span class="status-badge success">SUCCESS</span>
-                </div>
-                <video class="engine-card-video" controls src="isaacsim_grasp_shake_cube_mjxtrue_dt0_010.mp4"></video>
-                <div class="engine-card-meta">
-                    
-                </div>
-            </div>
-        
             <div class="engine-result-card failure">
                 <div class="engine-card-header">
                     <span class="engine-name">Mujoco</span>
                     <span class="status-badge failure">FAILURE</span>
                 </div>
-                <video class="engine-card-video" controls src="mujoco_grasp_shake_cube_mjxtrue_dt0_010.mp4"></video>
+                <video class="engine-card-video" controls src="mujoco_grasp_shake_cube_mjxfalse_dt0_010.mp4"></video>
                 <div class="engine-card-meta">
                     <div class="drop-time">Dropped at 4.00s</div>
-                </div>
-            </div>
-        
-            <div class="engine-result-card success">
-                <div class="engine-card-header">
-                    <span class="engine-name">Genesis</span>
-                    <span class="status-badge success">SUCCESS</span>
-                </div>
-                <video class="engine-card-video" controls src="genesis_grasp_shake_cube_mjxtrue_dt0_010.mp4"></video>
-                <div class="engine-card-meta">
-                    
                 </div>
             </div>
         
@@ -908,7 +886,29 @@
                     <span class="engine-name">Motrix</span>
                     <span class="status-badge success">SUCCESS</span>
                 </div>
-                <video class="engine-card-video" controls src="motrix_grasp_shake_cube_mjxtrue_dt0_010.mp4"></video>
+                <video class="engine-card-video" controls src="motrix_grasp_shake_cube_mjxfalse_dt0_010.mp4"></video>
+                <div class="engine-card-meta">
+                    
+                </div>
+            </div>
+        
+            <div class="engine-result-card success">
+                <div class="engine-card-header">
+                    <span class="engine-name">Genesis</span>
+                    <span class="status-badge success">SUCCESS</span>
+                </div>
+                <video class="engine-card-video" controls src="genesis_grasp_shake_cube_mjxfalse_dt0_010.mp4"></video>
+                <div class="engine-card-meta">
+                    
+                </div>
+            </div>
+        
+            <div class="engine-result-card success">
+                <div class="engine-card-header">
+                    <span class="engine-name">Isaacsim</span>
+                    <span class="status-badge success">SUCCESS</span>
+                </div>
+                <video class="engine-card-video" controls src="isaacsim_grasp_shake_cube_mjxtrue_dt0_010.mp4"></video>
                 <div class="engine-card-meta">
                     
                 </div>

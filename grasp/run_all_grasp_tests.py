@@ -186,9 +186,6 @@ def run_single_test(
             "--record",  # Always record to generate output for report
         ]
     )
-    # IsaacSim doesn't support --mjx flag
-    if engine != "isaacsim":
-        cmd.append("--mjx")
 
     if shake:
         cmd.append("--shake")
@@ -298,17 +295,17 @@ def print_summary(results: Dict[str, Dict]):
     timed_out = sum(1 for r in results.values() if "TIMEOUT" in r.get("output", ""))
     failed = total - passed - timed_out
 
-    print(f"Summary:")
+    print("Summary:")
     print(f"  Total:    {total}")
     print(f"  Passed:   {passed} ({passed * 100 // total if total else 0}%)")
     print(f"  Failed:   {failed} ({failed * 100 // total if total else 0}%)")
     if timed_out > 0:
         print(f"  Timed out: {timed_out} ({timed_out * 100 // total if total else 0}%)")
-        print(f"\n  Note: Some tests timed out - this may indicate a bug in the engine")
-        print(f"        for specific object types. See verbose output for details.")
+        print("\n  Note: Some tests timed out - this may indicate a bug in the engine")
+        print("        for specific object types. See verbose output for details.")
 
     # Group by engine
-    print(f"\nBy Engine:")
+    print("\nBy Engine:")
     for engine in set(r["engine"] for r in results.values()):
         engine_results = [r for r in results.values() if r["engine"] == engine]
         engine_passed = sum(1 for r in engine_results if r["success"])
@@ -318,7 +315,7 @@ def print_summary(results: Dict[str, Dict]):
         )
 
     # Group by object
-    print(f"\nBy Object:")
+    print("\nBy Object:")
     for obj in sorted(set(r["object"] for r in results.values())):
         obj_results = [r for r in results.values() if r["object"] == obj]
         obj_passed = sum(1 for r in obj_results if r["success"])
@@ -328,7 +325,7 @@ def print_summary(results: Dict[str, Dict]):
         )
 
     # Group by dt
-    print(f"\nBy DT:")
+    print("\nBy DT:")
     for dt in sorted(set(r["dt"] for r in results.values())):
         dt_results = [r for r in results.values() if r["dt"] == dt]
         dt_passed = sum(1 for r in dt_results if r["success"])
@@ -344,7 +341,7 @@ def generate_report(output_path: str):
     sys.path.insert(0, str(Path(__file__).parent))
     from test_result_visualizer import generate_html_report
 
-    print(f"\nGenerating comparison report...")
+    print("\nGenerating comparison report...")
     generate_html_report(
         output_path=output_path,
         results_dir=Path("output"),
