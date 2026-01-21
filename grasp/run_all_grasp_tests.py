@@ -253,9 +253,6 @@ def run_all_tests(
 
     for engine in engines:
         for obj in objects:
-            # Skip bottle for IsaacSim (not yet supported)
-            if engine == "isaacsim" and obj == "bottle":
-                continue
             for dt in dt_values:
                 test_key = f"{engine}_{obj}_dt{dt:.3f}"
                 completed += 1

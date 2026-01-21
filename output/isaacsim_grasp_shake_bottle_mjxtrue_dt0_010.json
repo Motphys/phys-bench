@@ -1,0 +1,11 @@
+{
+  "video_path": "output/isaacsim_grasp_shake_bottle_mjxtrue_dt0_010.mp4",
+  "status": "failure",
+  "drop_time": 4.009999910369515,
+  "engine": "isaacsim",
+  "object": "bottle",
+  "task": "shake",
+  "mjx": false,
+  "dt": 0.01,
+  "timestamp": "2026-01-21T11:42:36.633243"
+}
