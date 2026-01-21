@@ -51,6 +51,13 @@ _Record = flags.DEFINE_boolean(
 )
 _Dt = flags.DEFINE_float("dt", 0.002, "simulation timestep")
 
+_Visual = flags.DEFINE_boolean(
+    "visual",
+    False,
+    "whether to visualize the simulation in a window, Choices: [True, False]",
+    short_name="V",
+)
+
 from isaacsim.core.api import World
 from isaacsim.core.prims import Articulation
 from isaacsim.core.utils.stage import add_reference_to_stage
