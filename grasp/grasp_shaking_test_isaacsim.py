@@ -59,6 +59,7 @@ from isaacsim.storage.native import get_assets_root_path
 from isaacsim.sensors.camera import Camera
 from isaacsim.core.api.objects import DynamicCuboid, DynamicSphere
 from isaacsim.core.api.materials.physics_material import PhysicsMaterial
+from isaacsim.core.prims import XFormPrim
 
 
 def lerp(a, b, t):
@@ -88,6 +89,12 @@ def create_dynamic_sphere(prim_path, position, radius, color, physics_material=N
         color=color,
         physics_material=physics_material,
     )
+
+
+def create_xprim(usd_path, prim_path, name, position=None):
+    """Create a XFormPrim from usd."""
+    add_reference_to_stage(usd_path=usd_path, prim_path=prim_path)
+    return XFormPrim(prim_path, name=name, positions=position)
 
 
 def main(argv):
@@ -206,8 +213,11 @@ def main(argv):
         )
         obj_z_threshold = 0.03
     elif _Obj.value == "bottle":
-        print(f"Error: The bottle type is unimplemented yet.")
-        simulation_app.close()
+        obj = create_xprim(
+            usd_path="./assets/objects/scene_bottle.usd",
+            prim_path="/World/Bottle",
+            name="bottle",
+        )
         obj_z_threshold = 0.03
     else:
         print(f"Error: Unknown object type {_Obj.value}")
@@ -260,7 +270,11 @@ def main(argv):
                 franka.set_joint_position_targets(current_qpos)
 
             # Check if object fell - get object position using IsaacSim high-level API
-            obj_position, _ = obj.get_world_pose()
+            if isinstance(obj, XFormPrim):
+                obj_position, _ = obj.get_world_poses()
+                obj_position = obj_position[0]
+            else:
+                obj_position, _ = obj.get_world_pose()
             obj_z = obj_position[2]
             if obj_z < obj_z_threshold:
                 test_passed = False
