@@ -1,13 +1,80 @@
-# 陀螺进动
+# Gyroscope Precession Benchmarks
 
-# 场景描述
-场景中包含一个陀螺和平面，陀螺中包含三个刚体固定连接在一起，其中陀螺主体是一个扁而大的圆柱体提供主要的转动惯量，轴是一个细长的圆柱体，轴底接地的位置设置了一个和轴半径相同的球形，便于简化碰撞结果。
-启动仿真时，陀螺转轴被设置一个非垂直于地面的角度，再给陀螺沿转轴设置初始角速度，随后陀螺在重力与地面摩擦力的共同作用下自由运动。
+The gyroscope precession benchmarks test rotational dynamics, angular momentum conservation, and rigid body physics through a spinning gyroscope simulation. This tests the accuracy of rotational physics, collision handling, and numerical stability in constrained rotational motion.
 
-# 预期现象
+## Scenario
 
-由于角动量守恒，陀螺除自转外，还会进行进动与章动。初始的自转速度越快，章动幅度越小，反之则会因章动幅度过大导致接触地面不能维持稳定自转。
+The benchmark implements a **gyroscope** performing precession and nutation:
 
-# 结果分析
+1. **Setup**: Gyroscope with three rigid bodies (main cylinder body, slender axis, spherical tip)
+2. **Initial Conditions**: Axis tilted at non-perpendicular angle to ground
+3. **Initial Spin**: Angular velocity applied along the rotation axis
+4. **Free Motion**: Gyroscope moves under gravity and ground friction
+5. **Verification**: Observe precession, nutation, and stability over time
 
-仿真稳定性上，MotrixSim与Genesis均能在大仿真时间步长下维持较好的姿态。初始转速100的场景下，角动量较大，Mujoco与Isaacsim出现了不同程度的碰撞求解失效。
+## Expected Behavior
+
+Due to conservation of angular momentum:
+
+- **Precession**: Slow rotation of the rotation axis around the vertical
+- **Nutation**: Small oscillations superimposed on the precession
+- **Stability**: Faster initial spin → smaller nutation amplitude
+- **Failure**: Too slow spin → excessive nutation → ground contact → loss of stability
+
+## Test
+
+| Spin Speed | Expected Behavior                     | Challenge                                   |
+| ---------- | ------------------------------------- | ------------------------------------------- |
+| 100 rad/s  | Stable precession, minimal nutation   | Large angular momentum, collision stability |
+| 50 rad/s   | Moderate precession and nutation      | Balanced rotational dynamics                |
+| 20 rad/s   | Large nutation, potential instability | Maintaining spin stability                  |
+
+## Running Tests
+
+```bash
+# Run gyroscope precession tests
+cd gyro_precession
+
+# Genesis benchmark
+uv_genesis run python gyro_precession_test_genesis.py
+
+# MotrixSim benchmark
+uv_motrixsim run python gyro_precession_test_motrix.py
+
+# MuJoCo benchmark
+uv_mjwarp run python gyro_precession_test_mujoco.py
+
+# IsaacSim benchmark
+uv_isaacsim run python gyro_precession_test_isaacsim.py
+```
+
+#### Run All Tests
+
+To run all gyroscope precession benchmarks across different engines and configurations:
+
+```bash
+cd gyro_precession
+
+# Run all tests with default settings
+uv run python run_all_gyro_precession_tests.py
+
+# Run tests for specific engines
+uv run python run_all_gyro_precession_tests.py --engines genesis,motrix
+
+# Use custom timestep values
+uv run python run_all_gyro_precession_tests.py --dt-values 0.002,0.005
+```
+
+This will:
+
+- Run tests across all engine/DT combinations
+- Generate video recordings for each test
+- Create a comprehensive HTML comparison report at `output/gyro_precession/comparison_report.html`
+
+#### View Test Report
+
+**[📊 Click here to view the latest test report](https://htmlpreview.github.io/?https://raw.githubusercontent.com/Motphys/phys-bench/refs/heads/main/output/gyro_precession/comparison_report.html)**
+
+# Results Analysis
+
+In terms of simulation stability, both MotrixSim and Genesis can maintain good posture even with large simulation time steps. In the scenario with an initial spin speed of 100, the angular momentum is relatively high, and Mujoco and IsaacSim showed varying degrees of collision solver failure.

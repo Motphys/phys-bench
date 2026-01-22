@@ -1,6 +1,6 @@
 # Benchmarks
 
-This directory contains physics simulation benchmarks that compare the quality and accuracy of different physics engines using standardized robotic manipulation tasks.
+This directory contains physics simulation benchmarks that compare the quality and accuracy of different physics engines using standardized robotic manipulation tasks and physics phenomena.
 
 ## Grasp Benchmarks
 
@@ -309,3 +309,7 @@ These benchmarks test different aspects of physics simulation:
 - **Numerical Stability**: Does the simulation remain stable under perturbation?
 
 Comparing results across different physics engines can help validate simulation accuracy and identify areas for improvement.
+
+## Gyroscope Precession Benchmark
+
+We alse provide a gyroscope precession benchmark for you. This benchmark will demostrate the interesting precession physics phenomena. Please check `gyro_precession/README.md` for more details.
