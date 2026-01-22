@@ -62,7 +62,7 @@ lift_qpos = np.array(
 
 def main(argv):
     prefix = _UseMJX.value and "mjx_" or ""
-    path = f"grasp/xml/{prefix}pick_{_Obj.value}.xml"
+    path = f"assets/grasp/{prefix}pick_{_Obj.value}.xml"
 
     model = mujoco.MjModel.from_xml_path(path)
     model.opt.timestep = _Dt.value

@@ -75,11 +75,12 @@ def main(argv):
     )
     # The scene description file
     prefix = _UseMJX.value and "mjx_" or ""
-    path = f"grasp/xml/{prefix}pick_{_Obj.value}.xml"
+    path = f"assets/grasp/{prefix}pick_{_Obj.value}.xml"
     # Load the scene model
     model = load_model(path)
     # Set simulation timestep from command line argument
     model.options.timestep = _Dt.value
+    model.options.max_iterations = 10  # 10 iterations is enough for stable grasp
     cameras = model.cameras
     if _Record.value:
         cameras[0].set_render_target("image", 320, 240)
