@@ -1,0 +1,9 @@
+{
+  "video_path": "output/gyro_precession/mujoco_gyro_precession_vel100_000_dt0_000.mp4",
+  "status": "success",
+  "drop_time": null,
+  "engine": "mujoco",
+  "vel": 100.0,
+  "dt": 0.0001,
+  "timestamp": "2026-01-22T12:33:19.569994"
+}

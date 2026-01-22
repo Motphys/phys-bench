@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Generate HTML visualization of grasp test results."""
+"""Generate HTML visualization of gyro precession test results."""
 
 from pathlib import Path
 import argparse
@@ -26,7 +26,7 @@ from test_result_visualizer import generate_html_report
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate HTML comparison report for grasp benchmark tests. "
+        description="Generate HTML comparison report for gyro precession benchmark tests. "
         "The report includes success rate analysis, engine vs configuration matrix, "
         "and detailed test results with video playback.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -40,20 +40,20 @@ Examples:
     parser.add_argument(
         "--output",
         "-o",
-        default="output/grasp/comparison_report.html",
-        help="Output HTML path (default: output/grasp/comparison_report.html)",
+        default="output/gyro_precession/comparison_report.html",
+        help="Output HTML path (default: output/gyro_precession/comparison_report.html)",
     )
     parser.add_argument(
         "--results-dir",
         "-r",
-        default="output/grasp",
-        help="Directory containing JSON results (default: output/grasp)",
+        default="output/gyro_precession",
+        help="Directory containing JSON results (default: output/gyro_precession)",
     )
     parser.add_argument(
         "--title",
         "-t",
-        default="Grasp Benchmark Comparison Report",
-        help="Report title (default: 'Grasp Benchmark Comparison Report')",
+        default="Gyro Precession Benchmark Comparison Report",
+        help="Report title (default: 'Gyro Precession Benchmark Comparison Report')",
     )
 
     args = parser.parse_args()

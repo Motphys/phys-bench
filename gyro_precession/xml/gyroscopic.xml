@@ -1,0 +1,28 @@
+<mujoco>
+    <option  gravity="0 0 -9.8" />
+    <compiler autolimits="true"/>
+    <statistic center="0 0 -0.6" extent="0.8"/>
+
+    <asset>
+        <texture name="motphys-ground" type="2d" file="./motphys-ground.png" />
+        <material name="motphys-ground" texture="motphys-ground" texuniform="true" texrepeat="0.4 0.4"/>
+    </asset>
+
+    <default>
+        <geom friction="0.25 0.01" condim="4"/>
+    </default>
+
+    <worldbody>
+        <!-- gyroscopic -->
+        <body name = "gyro" pos="0 0 0.01" euler="0 18 0">
+            <freejoint  name="ball_1"/>
+            <geom type="sphere" size="0.01" rgba = "0.117 0.890 0.811 1"/>
+            <body pos="0 0 0.51">
+                <geom type="cylinder" size="0.01 0.5" rgba = "0.7 0.8 0.9 1"/>
+                <body pos="0 0 0">
+                    <geom type="cylinder" pos="0 0 -0.2" size="0.4 0.05" material="motphys-ground"/>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+</mujoco>

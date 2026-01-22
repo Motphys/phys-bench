@@ -1,0 +1,11 @@
+{
+  "video_path": "output/grasp/motrix_grasp_shake_ball_mjxfalse_dt0_002.mp4",
+  "status": "success",
+  "drop_time": null,
+  "engine": "motrix",
+  "object": "ball",
+  "task": "shake",
+  "mjx": false,
+  "dt": 0.002,
+  "timestamp": "2026-01-22T13:54:55.737110"
+}

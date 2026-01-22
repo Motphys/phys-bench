@@ -1,6 +1,6 @@
 # Benchmarks
 
-This directory contains physics simulation benchmarks that compare the quality and accuracy of different physics engines using standardized robotic manipulation tasks.
+This directory contains physics simulation benchmarks that compare the quality and accuracy of different physics engines using standardized robotic manipulation tasks and physics phenomena.
 
 ## Grasp Benchmarks
 
@@ -209,11 +209,11 @@ This will:
 
 - Run tests across all engine/object/DT combinations
 - Generate video recordings for each test
-- Create a comprehensive HTML comparison report at `output/comparison_report.html`
+- Create a comprehensive HTML comparison report at `output/grasp/comparison_report.html`
 
 #### View Test Report
 
-**[📊 Click here to view the latest test report](https://htmlpreview.github.io/?https://raw.githubusercontent.com/Motphys/phys-bench/refs/heads/main/output/comparison_report.html)**
+**[📊 Click here to view the latest test report](https://htmlpreview.github.io/?https://raw.githubusercontent.com/Motphys/phys-bench/refs/heads/main/output/grasp/comparison_report.html)**
 
 The report includes:
 
@@ -309,3 +309,7 @@ These benchmarks test different aspects of physics simulation:
 - **Numerical Stability**: Does the simulation remain stable under perturbation?
 
 Comparing results across different physics engines can help validate simulation accuracy and identify areas for improvement.
+
+## Gyroscope Precession Benchmark
+
+We alse provide a gyroscope precession benchmark for you. This benchmark will demostrate the interesting precession physics phenomena. Please check `gyro_precession/README.md` for more details.
