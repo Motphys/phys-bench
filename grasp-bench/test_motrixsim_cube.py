@@ -14,11 +14,12 @@ args = parser.parse_args()
 
 ########################## load model ##########################
 model_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../grasp/xml/mjx_pick_cube.xml")
+    os.path.join(os.path.dirname(__file__), "../assets/grasp/mjx_pick_cube.xml")
 )
 
 model = mx.load_model(model_path)
 model.options.timestep = 0.01  # Match genesis benchmark (100 Hz)
+model.options.max_iterations = 10
 
 ########################## create batched data ##########################
 n_envs = args.B
