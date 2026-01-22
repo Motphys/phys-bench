@@ -209,11 +209,11 @@ This will:
 
 - Run tests across all engine/object/DT combinations
 - Generate video recordings for each test
-- Create a comprehensive HTML comparison report at `output/comparison_report.html`
+- Create a comprehensive HTML comparison report at `output/grasp/comparison_report.html`
 
 #### View Test Report
 
-**[📊 Click here to view the latest test report](https://htmlpreview.github.io/?https://raw.githubusercontent.com/Motphys/phys-bench/refs/heads/main/output/comparison_report.html)**
+**[📊 Click here to view the latest test report](https://htmlpreview.github.io/?https://raw.githubusercontent.com/Motphys/phys-bench/refs/heads/main/output/grasp/comparison_report.html)**
 
 The report includes:
 
