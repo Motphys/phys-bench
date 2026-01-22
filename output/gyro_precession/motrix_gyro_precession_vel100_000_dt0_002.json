@@ -1,0 +1,9 @@
+{
+  "video_path": "output/gyro_precession/motrix_gyro_precession_vel100_000_dt0_002.mp4",
+  "status": "success",
+  "drop_time": null,
+  "engine": "motrix",
+  "vel": 100.0,
+  "dt": 0.002,
+  "timestamp": "2026-01-22T14:06:41.367360"
+}

@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Shared utilities for test output across all grasp test scripts."""
+"""Shared utilities for test output across all gyro precession test scripts."""
 
 import json
 from pathlib import Path
@@ -22,19 +22,16 @@ from typing import Optional, List, Dict
 
 def ensure_output_directory() -> Path:
     """Create output directory if it doesn't exist."""
-    output_dir = Path("output/grasp")
+    output_dir = Path("output/gyro_precession")
     output_dir.mkdir(exist_ok=True)
     return output_dir
 
 
-def generate_video_path(
-    engine: str, object_name: str, shake: bool, mjx: bool, dt: float, output_dir: Path
-) -> str:
+def generate_video_path(engine: str, vel: float, dt: float, output_dir: Path) -> str:
     """Generate standardized video path in output directory."""
-    task = "shake" if shake else "slip"
-    mjx_str = f"mjx{str(mjx).lower()}"
+    vel_str = f"vel{vel:.3f}".replace(".", "_")  # Use underscore for decimal
     dt_str = f"dt{dt:.3f}".replace(".", "_")  # Use underscore for decimal
-    filename = f"{engine}_grasp_{task}_{object_name}_{mjx_str}_{dt_str}.mp4"
+    filename = f"{engine}_gyro_precession_{vel_str}_{dt_str}.mp4"
     return str(output_dir / filename)
 
 
@@ -52,23 +49,18 @@ def save_test_result(
     drop_time: Optional[float],
     output_dir: Path,
     engine: str,
-    object_name: str,
-    shake: bool,
-    mjx: bool,
+    vel: float,
     dt: float,
 ) -> None:
     """Save test result to JSON file matching video filename."""
     from datetime import datetime
 
-    task = "shake" if shake else "slip"
     result = {
         "video_path": video_path,
         "status": status,
         "drop_time": drop_time,
         "engine": engine,
-        "object": object_name,
-        "task": task,
-        "mjx": mjx,
+        "vel": vel,
         "dt": dt,
         "timestamp": datetime.now().isoformat(),
     }
@@ -78,44 +70,36 @@ def save_test_result(
 
 
 def parse_result_filename(filename: str) -> Optional[Dict[str, any]]:
-    """Extract engine, task, object, mjx, dt from filename.
+    """Extract engine, vel, dt from filename.
 
-    Example: "mujoco_grasp_shake_cube_mjxfalse_dt0_002.json" ->
-        {"engine": "mujoco", "task": "shake", "object": "cube", "mjx": False, "dt": 0.002}
+    Example: "mujoco_gyro_precession_vel20_0_dt0_002.json" ->
+        {"engine": "mujoco", "vel": 20.0, "dt": 0.002}
 
     Args:
-        filename: JSON filename (e.g., "mujoco_grasp_shake_cube_mjxfalse_dt0_002.json")
+        filename: JSON filename (e.g., "mujoco_gyro_precession_vel20_0_dt0_002.json")
 
     Returns:
-        Dict with keys: engine, task, object, mjx, dt, or None if pattern doesn't match
+        Dict with keys: engine, vel, dt, or None if pattern doesn't match
     """
     stem = Path(filename).stem  # Remove .json
     parts = stem.split("_")
 
-    # New pattern: {engine}_grasp_{task}_{object}_mjx{true|false}_dt{value}
-    if len(parts) >= 8 and parts[1] == "grasp":
+    # Pattern: {engine}_gyro_precession_vel{value}_dt{value}
+    if len(parts) >= 6 and "gyro_precession" in stem:
         try:
-            mjx_val = parts[5].replace("mjx", "") == "true"
-            dt_val = float(parts[6].replace("dt", "").replace("_", "."))
+            # Find vel and dt parts
+            vel_idx = next(i for i, p in enumerate(parts) if p.startswith("vel"))
+            dt_idx = next(i for i, p in enumerate(parts) if p.startswith("dt"))
+
+            vel_val = float(parts[vel_idx].replace("vel", "").replace("_", "."))
+            dt_val = float(parts[dt_idx].replace("dt", "").replace("_", "."))
             return {
                 "engine": parts[0],
-                "task": parts[2],
-                "object": parts[3],
-                "mjx": mjx_val,
+                "vel": vel_val,
                 "dt": dt_val,
             }
-        except (ValueError, IndexError):
+        except (ValueError, IndexError, StopIteration):
             pass
-
-    # Fallback to old pattern for backward compatibility
-    if len(parts) >= 4 and parts[1] == "grasp":
-        return {
-            "engine": parts[0],
-            "task": parts[2],
-            "object": parts[3],
-            "mjx": False,
-            "dt": 0.002,
-        }
 
     return None
 
@@ -124,11 +108,11 @@ def load_test_results(output_dir: Path = None) -> List[Dict]:
     """Scan output directory and load all JSON test results.
 
     Args:
-        output_dir: Directory containing JSON files. Defaults to "output/grasp".
+        output_dir: Directory containing JSON files. Defaults to "output/gyro_precession/".
 
     Returns:
-        List of dicts with keys: engine, object, task, video_path, status, drop_time,
-                                video_exists, json_file, mjx, dt
+        List of dicts with keys: engine, vel, video_path, status, drop_time,
+                                video_exists, json_file, dt
     """
     if output_dir is None:
         output_dir = ensure_output_directory()
@@ -150,7 +134,7 @@ def load_test_results(output_dir: Path = None) -> List[Dict]:
         video_exists = video_path.exists()
 
         # Use values from JSON if available (new format), otherwise use parsed values
-        mjx = data.get("mjx", parsed.get("mjx", False))
+        vel = data.get("vel", parsed.get("vel", 0.0))
         dt = data.get("dt", parsed.get("dt", 0.002))
 
         results.append(
@@ -159,7 +143,7 @@ def load_test_results(output_dir: Path = None) -> List[Dict]:
                 "video_path": data["video_path"],
                 "status": data["status"],
                 "drop_time": data["drop_time"],
-                "mjx": mjx,
+                "vel": vel,
                 "dt": dt,
                 "video_exists": video_exists,
                 "json_file": str(json_file),
@@ -170,7 +154,7 @@ def load_test_results(output_dir: Path = None) -> List[Dict]:
 
 
 def generate_summary_stats(results: List[Dict]) -> Dict:
-    """Calculate success/failure statistics by engine/object/task/mjx/dt.
+    """Calculate success/failure statistics by engine/vel/dt.
 
     Args:
         results: List of test result dicts from load_test_results()
@@ -183,19 +167,16 @@ def generate_summary_stats(results: List[Dict]) -> Dict:
         "success": sum(1 for r in results if r["status"] == "success"),
         "failure": sum(1 for r in results if r["status"] == "failure"),
         "by_engine": {},
-        "by_object": {},
-        "by_task": {},
-        "by_mjx": {},  # NEW
-        "by_dt": {},  # NEW
+        "by_vel": {},
+        "by_dt": {},
     }
 
-    for key in ["engine", "object", "task", "mjx", "dt"]:
+    for key in ["engine", "vel", "dt"]:
         for result in results:
             value = result[key]
-            # Convert boolean to string for mjx
-            if key == "mjx":
-                value = str(value).lower()
-            # Format dt to string with 3 decimal places
+            # Format vel and dt to strings
+            if key == "vel":
+                value = f"{value:.1f}"
             elif key == "dt":
                 value = f"{value:.3f}"
             if value not in stats[f"by_{key}"]:
@@ -209,10 +190,10 @@ def generate_summary_stats(results: List[Dict]) -> Dict:
     return stats
 
 
-def group_results_by_object_and_dt(
+def group_results_by_vel_and_dt(
     results: List[Dict],
-) -> Dict[str, Dict[float, List[Dict]]]:
-    """Group results by object, then by dt, preserving engine info for comparison.
+) -> Dict[float, Dict[float, List[Dict]]]:
+    """Group results by velocity, then by dt, preserving engine info for comparison.
 
     Args:
         results: List of test result dicts from load_test_results()
@@ -220,40 +201,40 @@ def group_results_by_object_and_dt(
     Returns:
         Nested dict structure:
         {
-            "ball": {
+            20.0: {
                 0.002: [result_for_engine1, result_for_engine2, ...],
                 0.01: [...]
             },
-            "cube": {...},
+            50.0: {...},
             ...
         }
     """
     grouped = {}
     for result in results:
-        obj = result["object"]
+        vel = result["vel"]
         dt = result["dt"]
 
-        if obj not in grouped:
-            grouped[obj] = {}
-        if dt not in grouped[obj]:
-            grouped[obj][dt] = []
+        if vel not in grouped:
+            grouped[vel] = {}
+        if dt not in grouped[vel]:
+            grouped[vel][dt] = []
 
-        grouped[obj][dt].append(result)
+        grouped[vel][dt].append(result)
 
     return grouped
 
 
 def get_config_combinations(results: List[Dict]) -> List[tuple]:
-    """Get all unique (object, dt) combinations sorted for display.
+    """Get all unique (vel, dt) combinations sorted for display.
 
     Args:
         results: List of test result dicts from load_test_results()
 
     Returns:
-        Sorted list of tuples: [('ball', 0.002), ('ball', 0.01), ('cube', 0.002), ...]
+        Sorted list of tuples: [(20.0, 0.002), (20.0, 0.01), (50.0, 0.002), ...]
     """
     # Get unique combinations
-    combinations = set((r["object"], r["dt"]) for r in results)
+    combinations = set((r["vel"], r["dt"]) for r in results)
 
-    # Sort by object name, then by dt value
+    # Sort by velocity value, then by dt value
     return sorted(combinations, key=lambda x: (x[0], x[1]))
