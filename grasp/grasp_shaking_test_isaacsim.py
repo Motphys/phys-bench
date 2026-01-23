@@ -127,7 +127,7 @@ def main(argv):
         frames = []
         recording_fps = 30
 
-        # Headless模式警告
+        # Headless mode warning
         if headless_mode:
             print("Warning: Recording in headless mode may produce empty frames.")
             print("Consider using --visual flag for proper rendering.")
@@ -148,10 +148,10 @@ def main(argv):
                 orientation=camera_orientation,
             )
 
-            # 初始化相机
+            # Initialize camera
             camera.initialize()
 
-            # 添加RGB annotator
+            # Add RGB annotator
             camera.add_rgb_to_frame()
 
             print(f"Recording camera initialized at {camera_eye} -> {camera_target}")

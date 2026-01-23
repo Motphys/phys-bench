@@ -3,8 +3,8 @@ import os
 import time
 
 import motrixsim as mx
-from motrixsim import run
 import numpy as np
+from motrixsim import run
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-B", type=int, default=1)  # batch size
@@ -14,10 +14,7 @@ args = parser.parse_args()
 
 ########################## load model ##########################
 model_path = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__),
-        "../assets/grasp/mjx_pick_ball.xml"
-    )
+    os.path.join(os.path.dirname(__file__), "../assets/grasp/pick_ball.xml")
 )
 
 model = mx.load_model(model_path)
@@ -32,8 +29,12 @@ else:
 
 ########################## setup control ##########################
 # Reference positions (ball has different grasp_qpos from cube)
-grasp_qpos = np.array([-1.0323, 1.7628, 1.4904, -1.6749, -1.7715, 1.6293, 1.4417, 0.04, 0.04])
-lift_qpos = np.array([-1.0426, 1.4028, 1.5634, -1.7114, -1.4055, 1.6015, 1.4510, 0.0, 0.0])
+grasp_qpos = np.array(
+    [-1.0323, 1.7628, 1.4904, -1.6749, -1.7715, 1.6293, 1.4417, 0.04, 0.04]
+)
+lift_qpos = np.array(
+    [-1.0426, 1.4028, 1.5634, -1.7114, -1.4055, 1.6015, 1.4510, 0.0, 0.0]
+)
 
 # Initialize robot to grasp position
 panda_index = model.get_body_index("link0")
@@ -58,7 +59,9 @@ def make_ctrl(joint_qpos, gripper_val, n_envs):
     """Create actuator control array for mjx_panda (8 actuators)"""
     ctrl = np.zeros((n_envs, 8), dtype=np.float32)
     ctrl[:, :7] = joint_qpos
-    ctrl[:, 7] = gripper_val  # gripper (actuator8 controls both fingers via equality constraint)
+    ctrl[:, 7] = (
+        gripper_val  # gripper (actuator8 controls both fingers via equality constraint)
+    )
     return ctrl
 
 
@@ -111,7 +114,9 @@ if args.v:
             t_end[0] = time.perf_counter()
             benchmark_complete[0] = True
             print(f"per env: {benchmark_steps / (t_end[0] - t_start[0]):,.2f} FPS")
-            print(f"total  : {benchmark_steps / (t_end[0] - t_start[0]) * n_envs:,.2f} FPS")
+            print(
+                f"total  : {benchmark_steps / (t_end[0] - t_start[0]) * n_envs:,.2f} FPS"
+            )
 
     def render_func():
         render.sync(data)
