@@ -3,8 +3,8 @@ import os
 import time
 
 import motrixsim as mx
-from motrixsim import run
 import numpy as np
+from motrixsim import run
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-B", type=int, default=1)  # batch size
@@ -14,7 +14,7 @@ args = parser.parse_args()
 
 ########################## load model ##########################
 model_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../assets/grasp/mjx_pick_cube.xml")
+    os.path.join(os.path.dirname(__file__), "../assets/grasp/pick_cube.xml")
 )
 
 model = mx.load_model(model_path)

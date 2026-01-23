@@ -19,7 +19,7 @@ def run_test(cmd, description):
 
     try:
         result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, timeout=120
+            cmd, shell=True, capture_output=True, text=True, timeout=300
         )
 
         output = result.stdout + result.stderr
@@ -40,7 +40,7 @@ def run_test(cmd, description):
             return None, None
 
     except subprocess.TimeoutExpired:
-        print(f"✗ Timeout (120s)")
+        print(f"✗ Timeout (300s)")
         return None, None
     except Exception as e:
         print(f"✗ Error: {e}")
@@ -51,7 +51,7 @@ def main():
     print("""
 ╔══════════════════════════════════════════════════════════════╗
 ║         Franka Multi-Robot Performance Benchmark            ║
-║                   Genesis vs Motrixsim                       ║
+║     Genesis vs Motrixsim vs IsaacSim vs MuJoCo-Warp         ║
 ║                    9 DOF (with fingers)                      ║
 ║           Testing: N robots x B batch_size envs              ║
 ╚══════════════════════════════════════════════════════════════╝
@@ -84,10 +84,34 @@ def main():
             per_env, total = run_test(cmd, desc)
             results[f"motrixsim_9dof_n{n}_b{b}"] = {"per_env": per_env, "total": total, "n": n, "b": b}
 
+    # IsaacSim 9 DOF (with fingers)
+    print("\n" + "=" * 60)
+    print("ISAACSIM 9 DOF (WITH FINGERS)")
+    print("=" * 60)
+    for n in robot_counts:
+        for b in batch_sizes:
+            cmd = f"uv --project envs/isaacsim run python franka-multi-bench/test_isaacsim_9dof.py -N {n} -B {b}"
+            desc = f"IsaacSim 9 DOF - N={n} robots, B={b} envs"
+            per_env, total = run_test(cmd, desc)
+            results[f"isaacsim_9dof_n{n}_b{b}"] = {"per_env": per_env, "total": total, "n": n, "b": b}
+
+    # MuJoCo-Warp 9 DOF (with fingers)
+    print("\n" + "=" * 60)
+    print("MUJOCOWARP 9 DOF (WITH FINGERS)")
+    print("=" * 60)
+    for n in robot_counts:
+        for b in batch_sizes:
+            cmd = f"uv run franka-multi-bench/test_mujocowarp_9dof.py -N {n} -B {b}"
+            desc = f"MuJoCo-Warp 9 DOF - N={n} robots, B={b} envs"
+            per_env, total = run_test(cmd, desc)
+            results[f"mujocowarp_9dof_n{n}_b{b}"] = {"per_env": per_env, "total": total, "n": n, "b": b}
+
     # Print summary tables for each batch size
     configs = [
         ("Genesis 9 DOF (with fingers)", "genesis_9dof"),
         ("Motrixsim 9 DOF (with fingers)", "motrixsim_9dof"),
+        ("IsaacSim 9 DOF (with fingers)", "isaacsim_9dof"),
+        ("MuJoCo-Warp 9 DOF (with fingers)", "mujocowarp_9dof"),
     ]
 
     for b in batch_sizes:
@@ -125,11 +149,17 @@ def main():
 
             g9 = results.get(f"genesis_9dof_n{n}_b{b}", {}).get("total")
             m9 = results.get(f"motrixsim_9dof_n{n}_b{b}", {}).get("total")
+            i9 = results.get(f"isaacsim_9dof_n{n}_b{b}", {}).get("total")
+            w9 = results.get(f"mujocowarp_9dof_n{n}_b{b}", {}).get("total")
 
             if g9:
                 print(f"    Genesis 9 DOF    : {g9:>10,.0f} FPS")
             if m9:
                 print(f"    Motrixsim 9 DOF  : {m9:>10,.0f} FPS")
+            if i9:
+                print(f"    IsaacSim 9 DOF   : {i9:>10,.0f} FPS")
+            if w9:
+                print(f"    MuJoCo-Warp 9 DOF: {w9:>10,.0f} FPS")
 
     # Print performance ratios
     print("\n\n" + "=" * 100)
@@ -146,11 +176,38 @@ def main():
 
             g9 = results.get(f"genesis_9dof_n{n}_b{b}", {}).get("per_env")
             m9 = results.get(f"motrixsim_9dof_n{n}_b{b}", {}).get("per_env")
+            i9 = results.get(f"isaacsim_9dof_n{n}_b{b}", {}).get("per_env")
+            w9 = results.get(f"mujocowarp_9dof_n{n}_b{b}", {}).get("per_env")
 
             if g9 and m9:
                 ratio = g9 / m9
                 winner = "Genesis" if ratio > 1 else "Motrixsim"
-                print(f"    9 DOF: Genesis vs Motrixsim  : {winner:<10} {abs(ratio):>6.2f}x ({g9:>8,.0f} vs {m9:>8,.0f} FPS)")
+                print(f"    Genesis vs Motrixsim  : {winner:<10} {abs(ratio):>6.2f}x ({g9:>8,.0f} vs {m9:>8,.0f} FPS)")
+
+            if g9 and i9:
+                ratio = g9 / i9
+                winner = "Genesis" if ratio > 1 else "IsaacSim"
+                print(f"    Genesis vs IsaacSim   : {winner:<10} {abs(ratio):>6.2f}x ({g9:>8,.0f} vs {i9:>8,.0f} FPS)")
+
+            if g9 and w9:
+                ratio = g9 / w9
+                winner = "Genesis" if ratio > 1 else "MuJoCo-Warp"
+                print(f"    Genesis vs MuJoCo-Warp: {winner:<10} {abs(ratio):>6.2f}x ({g9:>8,.0f} vs {w9:>8,.0f} FPS)")
+
+            if m9 and i9:
+                ratio = m9 / i9
+                winner = "Motrixsim" if ratio > 1 else "IsaacSim"
+                print(f"    Motrixsim vs IsaacSim : {winner:<10} {abs(ratio):>6.2f}x ({m9:>8,.0f} vs {i9:>8,.0f} FPS)")
+
+            if m9 and w9:
+                ratio = m9 / w9
+                winner = "Motrixsim" if ratio > 1 else "MuJoCo-Warp"
+                print(f"    Motrixsim vs MuJoCo-Warp: {winner:<10} {abs(ratio):>6.2f}x ({m9:>8,.0f} vs {w9:>8,.0f} FPS)")
+
+            if i9 and w9:
+                ratio = i9 / w9
+                winner = "IsaacSim" if ratio > 1 else "MuJoCo-Warp"
+                print(f"    IsaacSim vs MuJoCo-Warp: {winner:<10} {abs(ratio):>6.2f}x ({i9:>8,.0f} vs {w9:>8,.0f} FPS)")
 
     print("\n" + "=" * 100)
     print("BENCHMARK COMPLETE")
