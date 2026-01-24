@@ -17,7 +17,9 @@ import numpy as np
 
 def main():
     parser = argparse.ArgumentParser(description="Motrixsim Benchmark")
-    parser.add_argument("-B", type=int, default=1, help="Batch size (number of parallel environments)")
+    parser.add_argument(
+        "-B", type=int, default=1, help="Batch size (number of parallel environments)"
+    )
     parser.add_argument("-v", action="store_true", default=False, help="Visualize")
     args = parser.parse_args()
 
@@ -29,7 +31,7 @@ def main():
     )
 
     model = mx.load_model(model_path)
-    model.options.timestep = 0.01  # Match other benchmarks (100 Hz)
+    model.options.timestep = 0.005  # Match other benchmarks (100 Hz)
     model.options.max_iterations = 10
 
     ########################## create batched data ##########################
@@ -50,7 +52,7 @@ def main():
     # Initialize robot to grasp position
     panda_index = model.get_body_index("link0")
     panda = model.get_body(panda_index)
-    
+
     if n_envs > 1:
         init_pos = np.tile(grasp_qpos, (n_envs, 1))
         panda.set_dof_pos(data, init_pos)
@@ -117,7 +119,9 @@ def main():
                 t_end[0] = time.perf_counter()
                 benchmark_complete[0] = True
                 print(f"per env: {benchmark_steps / (t_end[0] - t_start[0]):,.2f} FPS")
-                print(f"total  : {benchmark_steps / (t_end[0] - t_start[0]) * n_envs:,.2f} FPS")
+                print(
+                    f"total  : {benchmark_steps / (t_end[0] - t_start[0]) * n_envs:,.2f} FPS"
+                )
 
         def render_func():
             render.sync(data)
@@ -129,7 +133,7 @@ def main():
         for i in range(benchmark_steps):
             model.step(data)
         t1 = time.perf_counter()
-        
+
         print(f"per env: {benchmark_steps / (t1 - t0):,.2f} FPS")
         print(f"total  : {benchmark_steps / (t1 - t0) * n_envs:,.2f} FPS")
 

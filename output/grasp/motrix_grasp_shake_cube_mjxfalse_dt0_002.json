@@ -6,6 +6,8 @@
   "object": "cube",
   "task": "shake",
   "mjx": false,
+  "integrator": "default",
   "dt": 0.002,
-  "timestamp": "2026-01-22T13:55:01.456768"
+  "noslip_iterations": 0,
+  "timestamp": "2026-01-24T22:13:01.954251"
 }

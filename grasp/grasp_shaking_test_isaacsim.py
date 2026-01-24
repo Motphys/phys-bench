@@ -105,6 +105,17 @@ def create_xprim(usd_path, prim_path, name, position=None):
 
 
 def main(argv):
+    # Log startup parameters
+    print("=" * 60)
+    print("IsaacSim Grasp Shaking Test - Configuration")
+    print("=" * 60)
+    print(f"  Object:    {_Obj.value}")
+    print(f"  Shake:     {_Shake.value}")
+    print(f"  Record:    {_Record.value}")
+    print(f"  Timestep:  {_Dt.value}")
+    print(f"  Visual:    {_Visual.value}")
+    print("=" * 60)
+
     # Initialize IsaacSim 5.0 simulation app
     # Note: SimulationApp must be initialized BEFORE importing other IsaacSim modules
 
@@ -116,7 +127,7 @@ def main(argv):
     # Initialize output and tracking
     output_dir = ensure_output_directory()
     video_path = generate_video_path(
-        "isaacsim", _Obj.value, _Shake.value, True, _Dt.value, output_dir
+        "isaacsim", _Obj.value, _Shake.value, True, "default", _Dt.value, output_dir
     )
     test_passed = True
     drop_time = None
@@ -325,6 +336,7 @@ def main(argv):
             _Obj.value,
             _Shake.value,
             False,
+            "default",
             _Dt.value,
         )
 

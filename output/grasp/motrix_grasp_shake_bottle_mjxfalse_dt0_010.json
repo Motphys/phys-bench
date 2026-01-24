@@ -6,6 +6,8 @@
   "object": "bottle",
   "task": "shake",
   "mjx": false,
+  "integrator": "default",
   "dt": 0.01,
-  "timestamp": "2026-01-22T13:55:10.755876"
+  "noslip_iterations": 0,
+  "timestamp": "2026-01-24T22:13:21.719747"
 }

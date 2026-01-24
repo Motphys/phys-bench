@@ -28,13 +28,30 @@ def ensure_output_directory() -> Path:
 
 
 def generate_video_path(
-    engine: str, object_name: str, shake: bool, mjx: bool, dt: float, output_dir: Path
+    engine: str,
+    object_name: str,
+    shake: bool,
+    mjx: bool,
+    integrator: str,
+    dt: float,
+    output_dir: Path,
+    noslip_iterations: int = 0,
 ) -> str:
     """Generate standardized video path in output directory."""
     task = "shake" if shake else "slip"
     mjx_str = f"mjx{str(mjx).lower()}"
     dt_str = f"dt{dt:.3f}".replace(".", "_")  # Use underscore for decimal
-    filename = f"{engine}_grasp_{task}_{object_name}_{mjx_str}_{dt_str}.mp4"
+    # Only include integrator in filename for MuJoCo engine
+    if engine == "mujoco":
+        # Append _noslip suffix when noslip_iterations > 0
+        integrator_suffix = integrator
+        if noslip_iterations > 0:
+            integrator_suffix = f"{integrator}_noslip"
+        filename = (
+            f"{engine}_grasp_{task}_{object_name}_{mjx_str}_{integrator_suffix}_{dt_str}.mp4"
+        )
+    else:
+        filename = f"{engine}_grasp_{task}_{object_name}_{mjx_str}_{dt_str}.mp4"
     return str(output_dir / filename)
 
 
@@ -55,7 +72,9 @@ def save_test_result(
     object_name: str,
     shake: bool,
     mjx: bool,
+    integrator: str,
     dt: float,
+    noslip_iterations: int = 0,
 ) -> None:
     """Save test result to JSON file matching video filename."""
     from datetime import datetime
@@ -69,7 +88,9 @@ def save_test_result(
         "object": object_name,
         "task": task,
         "mjx": mjx,
+        "integrator": integrator,
         "dt": dt,
+        "noslip_iterations": noslip_iterations,
         "timestamp": datetime.now().isoformat(),
     }
     json_path = str(Path(video_path).with_suffix(".json"))
@@ -78,21 +99,64 @@ def save_test_result(
 
 
 def parse_result_filename(filename: str) -> Optional[Dict[str, any]]:
-    """Extract engine, task, object, mjx, dt from filename.
+    """Extract engine, task, object, mjx, integrator, dt, noslip_iterations from filename.
 
-    Example: "mujoco_grasp_shake_cube_mjxfalse_dt0_002.json" ->
-        {"engine": "mujoco", "task": "shake", "object": "cube", "mjx": False, "dt": 0.002}
+    Example: "mujoco_grasp_shake_cube_mjxfalse_implicit_noslip_dt0_002.json" ->
+        {"engine": "mujoco", "task": "shake", "object": "cube", "mjx": False, "integrator": "implicit", "noslip_iterations": 1, "dt": 0.002}
 
     Args:
-        filename: JSON filename (e.g., "mujoco_grasp_shake_cube_mjxfalse_dt0_002.json")
+        filename: JSON filename (e.g., "mujoco_grasp_shake_cube_mjxfalse_implicit_noslip_dt0_002.json")
 
     Returns:
-        Dict with keys: engine, task, object, mjx, dt, or None if pattern doesn't match
+        Dict with keys: engine, task, object, mjx, integrator, noslip_iterations, dt, or None if pattern doesn't match
     """
     stem = Path(filename).stem  # Remove .json
     parts = stem.split("_")
 
-    # New pattern: {engine}_grasp_{task}_{object}_mjx{true|false}_dt{value}
+    # New pattern with integrator and optional noslip: {engine}_grasp_{task}_{object}_mjx{true|false}_{integrator}[_noslip]_dt{value}
+    # Check for noslip suffix (10 parts): engine_grasp_task_object_mjxval_integrator_noslip_dtval
+    if len(parts) >= 10 and parts[1] == "grasp":
+        try:
+            mjx_val = parts[5].replace("mjx", "") == "true"
+            integrator_val = parts[6]
+            # Check if part 7 is "noslip"
+            if parts[7] == "noslip":
+                noslip_iterations = 1
+                dt_val = float(parts[8].replace("dt", "").replace("_", "."))
+            else:
+                noslip_iterations = 0
+                dt_val = float(parts[7].replace("dt", "").replace("_", "."))
+            return {
+                "engine": parts[0],
+                "task": parts[2],
+                "object": parts[3],
+                "mjx": mjx_val,
+                "integrator": integrator_val,
+                "noslip_iterations": noslip_iterations,
+                "dt": dt_val,
+            }
+        except (ValueError, IndexError):
+            pass
+
+    # Pattern with integrator but no noslip (9 parts): engine_grasp_task_object_mjxval_integrator_dtval
+    if len(parts) >= 9 and parts[1] == "grasp":
+        try:
+            mjx_val = parts[5].replace("mjx", "") == "true"
+            integrator_val = parts[6]
+            dt_val = float(parts[7].replace("dt", "").replace("_", "."))
+            return {
+                "engine": parts[0],
+                "task": parts[2],
+                "object": parts[3],
+                "mjx": mjx_val,
+                "integrator": integrator_val,
+                "noslip_iterations": 0,
+                "dt": dt_val,
+            }
+        except (ValueError, IndexError):
+            pass
+
+    # Old pattern without integrator (for backward compatibility): {engine}_grasp_{task}_{object}_mjx{true|false}_dt{value}
     if len(parts) >= 8 and parts[1] == "grasp":
         try:
             mjx_val = parts[5].replace("mjx", "") == "true"
@@ -102,18 +166,22 @@ def parse_result_filename(filename: str) -> Optional[Dict[str, any]]:
                 "task": parts[2],
                 "object": parts[3],
                 "mjx": mjx_val,
+                "integrator": "euler",  # Default for old files
+                "noslip_iterations": 0,
                 "dt": dt_val,
             }
         except (ValueError, IndexError):
             pass
 
-    # Fallback to old pattern for backward compatibility
+    # Fallback to oldest pattern for backward compatibility
     if len(parts) >= 4 and parts[1] == "grasp":
         return {
             "engine": parts[0],
             "task": parts[2],
             "object": parts[3],
             "mjx": False,
+            "integrator": "euler",  # Default for old files
+            "noslip_iterations": 0,
             "dt": 0.002,
         }
 
@@ -151,7 +219,9 @@ def load_test_results(output_dir: Path = None) -> List[Dict]:
 
         # Use values from JSON if available (new format), otherwise use parsed values
         mjx = data.get("mjx", parsed.get("mjx", False))
+        integrator = data.get("integrator", parsed.get("integrator", "euler"))
         dt = data.get("dt", parsed.get("dt", 0.002))
+        noslip_iterations = data.get("noslip_iterations", parsed.get("noslip_iterations", 0))
 
         results.append(
             {
@@ -160,7 +230,9 @@ def load_test_results(output_dir: Path = None) -> List[Dict]:
                 "status": data["status"],
                 "drop_time": data["drop_time"],
                 "mjx": mjx,
+                "integrator": integrator,
                 "dt": dt,
+                "noslip_iterations": noslip_iterations,
                 "video_exists": video_exists,
                 "json_file": str(json_file),
             }
@@ -170,7 +242,7 @@ def load_test_results(output_dir: Path = None) -> List[Dict]:
 
 
 def generate_summary_stats(results: List[Dict]) -> Dict:
-    """Calculate success/failure statistics by engine/object/task/mjx/dt.
+    """Calculate success/failure statistics by engine/object/task/mjx/integrator/dt.
 
     Args:
         results: List of test result dicts from load_test_results()
@@ -186,10 +258,11 @@ def generate_summary_stats(results: List[Dict]) -> Dict:
         "by_object": {},
         "by_task": {},
         "by_mjx": {},  # NEW
+        "by_integrator": {},  # NEW
         "by_dt": {},  # NEW
     }
 
-    for key in ["engine", "object", "task", "mjx", "dt"]:
+    for key in ["engine", "object", "task", "mjx", "integrator", "dt"]:
         for result in results:
             value = result[key]
             # Convert boolean to string for mjx
@@ -213,6 +286,9 @@ def group_results_by_object_and_dt(
     results: List[Dict],
 ) -> Dict[str, Dict[float, List[Dict]]]:
     """Group results by object, then by dt, preserving engine info for comparison.
+
+    Note: For report visualization, MuJoCo integrators are merged into engine names
+    (e.g., "mujoco_euler", "mujoco_implicit") before calling this function.
 
     Args:
         results: List of test result dicts from load_test_results()
