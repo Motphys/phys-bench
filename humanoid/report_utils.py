@@ -778,6 +778,24 @@ def _get_css_styles() -> str:
     </style>"""
 
 
+def _get_chartjs_inline() -> str:
+    """Load Chart.js library as inline script for htmlpreview.github.io compatibility.
+
+    Returns:
+        HTML script tag with Chart.js library content embedded
+    """
+    chartjs_path = Path(__file__).parent / "chart.js"
+
+    if not chartjs_path.exists():
+        # Fallback to CDN if file doesn't exist
+        return f'<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>'
+
+    with open(chartjs_path, "r", encoding="utf-8") as f:
+        chartjs_content = f.read()
+
+    return f'<script>\n{chartjs_content}\n</script>'
+
+
 def _get_html_template(title: str, cpu_model: str, results: List[Dict],
                        grouped: Dict, stats: Dict) -> str:
     """Generate complete HTML document."""
@@ -797,7 +815,7 @@ def _get_html_template(title: str, cpu_model: str, results: List[Dict],
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    {_get_chartjs_inline()}
     {_get_css_styles()}
 </head>
 <body>
