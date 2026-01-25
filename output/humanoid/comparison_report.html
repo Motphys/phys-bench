@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Humanoid Benchmark Performance Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <style>
+        :root {
+            --motrix-blue: #3b82f6;
+            --mujoco-red: #ef4444;
+            --success: #22c55e;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+        }
+        html { scroll-behavior: smooth; }
+
+        /* Header */
+        header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+        header .subtitle {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Navigation */
+        nav {
+            background: var(--card-bg);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            position: sticky;
+            top: 72px;
+            z-index: 99;
+        }
+        .nav-tab {
+            padding: 0.5rem 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: var(--bg);
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .nav-tab:hover {
+            background: #e2e8f0;
+        }
+        .nav-tab.active {
+            background: var(--motrix-blue);
+            color: white;
+            border-color: var(--motrix-blue);
+        }
+
+        /* Main content */
+        main {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Sections */
+        section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        /* Overview Dashboard */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .summary-card {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .summary-label {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+        }
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--motrix-blue);
+        }
+        .summary-sub {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.5rem;
+        }
+
+        /* Charts */
+        .charts-section {
+            background: var(--card-bg);
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 2rem;
+        }
+        .chart-container:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Matrix Table */
+        .matrix-table-wrapper {
+            overflow-x: auto;
+        }
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .matrix-table th,
+        .matrix-table td {
+            padding: 0.75rem 1rem;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .matrix-table th {
+            background: #f1f5f9;
+            font-weight: 600;
+        }
+        .engine-header {
+            background: #f1f5f9;
+            font-weight: 600;
+            text-align: left;
+        }
+        .matrix-cell-value {
+            font-weight: 600;
+        }
+        .matrix-cell-missing {
+            color: #94a3b8;
+        }
+
+        /* Filter Controls */
+        .filter-controls {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .filter-controls label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+        .filter-controls select {
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg);
+            font-size: 0.875rem;
+        }
+
+        /* Detailed Table */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+        .detailed-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        .detailed-table th,
+        .detailed-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+        .detailed-table th {
+            background: #f1f5f9;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        .detailed-table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        .detailed-table tr:hover {
+            background: #f1f5f9;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                padding: 1rem;
+            }
+            header h1 {
+                font-size: 1.25rem;
+            }
+            main {
+                padding: 1rem;
+            }
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+            nav {
+                padding: 0.5rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Humanoid Benchmark Performance Report</h1>
+        <div class="subtitle">CPU: Intel_R__Core_TM__i5-10600KF_CPU___4_10GHz | Generated: 2026-01-26 00:05:41</div>
+    </header>
+
+    <nav>
+        <button class="nav-tab active" data-target="by-n">By Humanoid Count</button>
+        <button class="nav-tab" data-target="by-b">By Batch Size</button>
+        <button class="nav-tab" data-target="detailed">Detailed Data</button>
+    </nav>
+
+    <main>
+        <section class="charts-section" id="by-n"><h2>Performance by Humanoid Count (N)</h2>
+        <div class="chart-container">
+            <canvas id="chart-n1"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="chart-n5"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="chart-n10"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="chart-n50"></canvas>
+        </div>
+        </section>
+
+        <section class="charts-section" id="by-b"><h2>Performance by Batch Size (B)</h2>
+        <div class="chart-container">
+            <canvas id="chart-b1"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="chart-b512"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="chart-b1024"></canvas>
+        </div>
+        </section>
+
+        <section class="detailed-table-section" id="detailed"><h2>Detailed Data</h2>
+    <div class="filter-controls">
+        <label>Filter by N: <select id="filter-n">
+            <option value="all">All</option>
+        </select></label>
+        <label>Filter by B: <select id="filter-b">
+            <option value="all">All</option>
+        </select></label>
+    </div>
+    <div class="table-wrapper">
+        <table class="detailed-table" id="detailed-table">
+            <thead>
+                <tr>
+                    <th>Engine</th>
+                    <th>N (Humanoids)</th>
+                    <th>B (Batch)</th>
+                    <th>Total FPS</th>
+                </tr>
+            </thead>
+            <tbody>
+    
+                <tr data-n="1" data-b="1">
+                    <td>motrix</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>8,699.65</td>
+                </tr>
+        
+                <tr data-n="1" data-b="512">
+                    <td>motrix</td>
+                    <td>1</td>
+                    <td>512</td>
+                    <td>44,978.53</td>
+                </tr>
+        
+                <tr data-n="1" data-b="1024">
+                    <td>motrix</td>
+                    <td>1</td>
+                    <td>1024</td>
+                    <td>44,109.96</td>
+                </tr>
+        
+                <tr data-n="5" data-b="1">
+                    <td>motrix</td>
+                    <td>5</td>
+                    <td>1</td>
+                    <td>2,906.85</td>
+                </tr>
+        
+                <tr data-n="5" data-b="512">
+                    <td>motrix</td>
+                    <td>5</td>
+                    <td>512</td>
+                    <td>8,887.22</td>
+                </tr>
+        
+                <tr data-n="5" data-b="1024">
+                    <td>motrix</td>
+                    <td>5</td>
+                    <td>1024</td>
+                    <td>9,290.32</td>
+                </tr>
+        
+                <tr data-n="10" data-b="1">
+                    <td>motrix</td>
+                    <td>10</td>
+                    <td>1</td>
+                    <td>2,095.49</td>
+                </tr>
+        
+                <tr data-n="10" data-b="512">
+                    <td>motrix</td>
+                    <td>10</td>
+                    <td>512</td>
+                    <td>4,755.71</td>
+                </tr>
+        
+                <tr data-n="10" data-b="1024">
+                    <td>motrix</td>
+                    <td>10</td>
+                    <td>1024</td>
+                    <td>4,799.89</td>
+                </tr>
+        
+                <tr data-n="50" data-b="1">
+                    <td>motrix</td>
+                    <td>50</td>
+                    <td>1</td>
+                    <td>530.58</td>
+                </tr>
+        
+                <tr data-n="1" data-b="1">
+                    <td>mujoco</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>11,942.66</td>
+                </tr>
+        
+                <tr data-n="1" data-b="512">
+                    <td>mujoco</td>
+                    <td>1</td>
+                    <td>512</td>
+                    <td>108,833.50</td>
+                </tr>
+        
+                <tr data-n="1" data-b="1024">
+                    <td>mujoco</td>
+                    <td>1</td>
+                    <td>1024</td>
+                    <td>108,880.31</td>
+                </tr>
+        
+                <tr data-n="5" data-b="1">
+                    <td>mujoco</td>
+                    <td>5</td>
+                    <td>1</td>
+                    <td>1,534.84</td>
+                </tr>
+        
+                <tr data-n="5" data-b="512">
+                    <td>mujoco</td>
+                    <td>5</td>
+                    <td>512</td>
+                    <td>7,753.70</td>
+                </tr>
+        
+                <tr data-n="5" data-b="1024">
+                    <td>mujoco</td>
+                    <td>5</td>
+                    <td>1024</td>
+                    <td>8,303.09</td>
+                </tr>
+        
+                <tr data-n="10" data-b="1">
+                    <td>mujoco</td>
+                    <td>10</td>
+                    <td>1</td>
+                    <td>478.26</td>
+                </tr>
+        
+                <tr data-n="10" data-b="512">
+                    <td>mujoco</td>
+                    <td>10</td>
+                    <td>512</td>
+                    <td>1,425.66</td>
+                </tr>
+        
+                <tr data-n="10" data-b="1024">
+                    <td>mujoco</td>
+                    <td>10</td>
+                    <td>1024</td>
+                    <td>1,446.12</td>
+                </tr>
+        
+                <tr data-n="50" data-b="1">
+                    <td>mujoco</td>
+                    <td>50</td>
+                    <td>1</td>
+                    <td>18.38</td>
+                </tr>
+        
+            </tbody>
+        </table>
+    </div>
+    </section>
+    
+    </main>
+
+    <script>
+        // Initialize all charts after DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            const chartConfigs = [
+{
+        id: 'chart-n1',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["B=1", "B=512", "B=1024"],
+                datasets: [{"label": "Motrix", "data": [8699.65, 44978.53, 44109.96], "backgroundColor": "#3b82f6"}, {"label": "MuJoCo", "data": [11942.66, 108833.5, 108880.31], "backgroundColor": "#ef4444"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'N=1 Humanoids - Total FPS',
+                        font: { size: 16 }
+                    },
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'FPS (total)'
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-n5',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["B=1", "B=512", "B=1024"],
+                datasets: [{"label": "Motrix", "data": [2906.85, 8887.22, 9290.32], "backgroundColor": "#3b82f6"}, {"label": "MuJoCo", "data": [1534.84, 7753.7, 8303.09], "backgroundColor": "#ef4444"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'N=5 Humanoids - Total FPS',
+                        font: { size: 16 }
+                    },
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'FPS (total)'
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-n10',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["B=1", "B=512", "B=1024"],
+                datasets: [{"label": "Motrix", "data": [2095.49, 4755.71, 4799.89], "backgroundColor": "#3b82f6"}, {"label": "MuJoCo", "data": [478.26, 1425.66, 1446.12], "backgroundColor": "#ef4444"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'N=10 Humanoids - Total FPS',
+                        font: { size: 16 }
+                    },
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'FPS (total)'
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-n50',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["B=1"],
+                datasets: [{"label": "Motrix", "data": [530.58], "backgroundColor": "#3b82f6"}, {"label": "MuJoCo", "data": [18.38], "backgroundColor": "#ef4444"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'N=50 Humanoids - Total FPS',
+                        font: { size: 16 }
+                    },
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'FPS (total)'
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-b1',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["N=1", "N=5", "N=10", "N=50"],
+                datasets: [{"label": "Motrix", "data": [8699.65, 2906.85, 2095.49, 530.58], "backgroundColor": "#3b82f6"}, {"label": "MuJoCo", "data": [11942.66, 1534.84, 478.26, 18.38], "backgroundColor": "#ef4444"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'B=1 Batch Size - Total FPS',
+                        font: { size: 16 }
+                    },
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'FPS (total)'
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-b512',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["N=1", "N=5", "N=10"],
+                datasets: [{"label": "Motrix", "data": [44978.53, 8887.22, 4755.71], "backgroundColor": "#3b82f6"}, {"label": "MuJoCo", "data": [108833.5, 7753.7, 1425.66], "backgroundColor": "#ef4444"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'B=512 Batch Size - Total FPS',
+                        font: { size: 16 }
+                    },
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'FPS (total)'
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-b1024',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["N=1", "N=5", "N=10"],
+                datasets: [{"label": "Motrix", "data": [44109.96, 9290.32, 4799.89], "backgroundColor": "#3b82f6"}, {"label": "MuJoCo", "data": [108880.31, 8303.09, 1446.12], "backgroundColor": "#ef4444"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'B=1024 Batch Size - Total FPS',
+                        font: { size: 16 }
+                    },
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'FPS (total)'
+                        }
+                    }
+                }
+            }
+        }
+    }
+];
+
+            chartConfigs.forEach(function(chartConfig) {
+                const canvas = document.getElementById(chartConfig.id);
+                if (canvas) {
+                    new Chart(canvas, chartConfig.config);
+                }
+            });
+
+            // Setup filter controls for detailed table
+            const nFilter = document.getElementById('filter-n');
+            const bFilter = document.getElementById('filter-b');
+
+            if (nFilter && bFilter) {
+                // Get unique N and B values from table
+                const nValues = [...new Set([...document.querySelectorAll('#detailed-table tbody tr')].map(row => row.dataset.n))].sort((a, b) => parseInt(a) - parseInt(b));
+                const bValues = [...new Set([...document.querySelectorAll('#detailed-table tbody tr')].map(row => row.dataset.b))].sort((a, b) => parseInt(a) - parseInt(b));
+
+                // Populate filter dropdowns
+                nValues.forEach(n => {
+                    const option = document.createElement('option');
+                    option.value = n;
+                    option.textContent = n;
+                    nFilter.appendChild(option);
+                });
+
+                bValues.forEach(b => {
+                    const option = document.createElement('option');
+                    option.value = b;
+                    option.textContent = b;
+                    bFilter.appendChild(option);
+                });
+
+                // Filter function
+                function filterTable() {
+                    const selectedN = nFilter.value;
+                    const selectedB = bFilter.value;
+
+                    document.querySelectorAll('#detailed-table tbody tr').forEach(row => {
+                        const rowN = row.dataset.n;
+                        const rowB = row.dataset.b;
+
+                        const showN = selectedN === 'all' || rowN === selectedN;
+                        const showB = selectedB === 'all' || rowB === selectedB;
+
+                        row.style.display = (showN && showB) ? '' : 'none';
+                    });
+                }
+
+                nFilter.addEventListener('change', filterTable);
+                bFilter.addEventListener('change', filterTable);
+            }
+        });
+
+        // Navigation tabs
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const target = tab.dataset.target;
+                const targetSection = document.getElementById(target) || document.querySelector('section');
+
+                if (targetSection) {
+                    targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                    // Update active state
+                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                }
+            });
+        });
+
+        // Update active tab on scroll
+        const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -60% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const sectionId = entry.target.id;
+                    document.querySelectorAll('.nav-tab').forEach(tab => {
+                        tab.classList.toggle('active', tab.dataset.target === sectionId);
+                    });
+                }
+            });
+        }, observerOptions);
+
+        // Observe all sections
+        document.querySelectorAll('section').forEach(section => {
+            observer.observe(section);
+        });
+    </script>
+</body>
+</html>
