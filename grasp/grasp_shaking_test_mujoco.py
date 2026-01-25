@@ -39,12 +39,29 @@ _Dt = flags.DEFINE_float("dt", 0.002, "simulation timestep")
 _UseMJX = flags.DEFINE_boolean(
     "mjx", False, "Use mjx_panda.xml or panda.xml for the Franka robot model"
 )
+_Integrator = flags.DEFINE_enum(
+    "integrator",
+    "euler",
+    ["euler", "implicit"],
+    "Integrator type: 'euler' (explicit) or 'implicit'",
+)
+_NoslipIterations = flags.DEFINE_integer(
+    "noslip_iterations",
+    0,
+    "Number of noslip iterations (0=disabled, 1=enabled)",
+)
 _Visual = flags.DEFINE_boolean(
     "visual",
     False,
     "whether to visualize the simulation in a window, Choices: [True, False]",
     short_name="V",
 )
+
+# Map integrator string to mujoco.mjtIntegrator enum
+INTEGRATOR_MAP = {
+    "euler": mujoco.mjtIntegrator.mjINT_EULER,
+    "implicit": mujoco.mjtIntegrator.mjINT_IMPLICIT,
+}
 
 
 def lerp(a, b, t):
@@ -61,11 +78,27 @@ lift_qpos = np.array(
 
 
 def main(argv):
+    # Log startup parameters
+    print("=" * 60)
+    print("MuJoCo Grasp Shaking Test - Configuration")
+    print("=" * 60)
+    print(f"  Object:           {_Obj.value}")
+    print(f"  Shake:            {_Shake.value}")
+    print(f"  Record:           {_Record.value}")
+    print(f"  Timestep (dt):    {_Dt.value}")
+    print(f"  Use MJX:          {_UseMJX.value}")
+    print(f"  Integrator:       {_Integrator.value}")
+    print(f"  Noslip Iterations: {_NoslipIterations.value}")
+    print(f"  Visual:           {_Visual.value}")
+    print("=" * 60)
+
     prefix = _UseMJX.value and "mjx_" or ""
     path = f"assets/grasp/{prefix}pick_{_Obj.value}.xml"
 
     model = mujoco.MjModel.from_xml_path(path)
     model.opt.timestep = _Dt.value
+    model.opt.integrator = INTEGRATOR_MAP[_Integrator.value]
+    model.opt.noslip_iterations = _NoslipIterations.value
     data = mujoco.MjData(model)
 
     data.qpos[0:9] = init_qpos
@@ -75,7 +108,14 @@ def main(argv):
     # Initialize output and tracking
     output_dir = ensure_output_directory()
     video_path = generate_video_path(
-        "mujoco", _Obj.value, _Shake.value, _UseMJX.value, _Dt.value, output_dir
+        "mujoco",
+        _Obj.value,
+        _Shake.value,
+        _UseMJX.value,
+        _Integrator.value,
+        _Dt.value,
+        output_dir,
+        _NoslipIterations.value,
     )
     test_passed = True
     drop_time = None
@@ -164,7 +204,9 @@ def main(argv):
             _Obj.value,
             _Shake.value,
             _UseMJX.value,
+            _Integrator.value,
             _Dt.value,
+            _NoslipIterations.value,
         )
 
 

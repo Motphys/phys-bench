@@ -49,6 +49,18 @@ def lerp(a, b, t):
 
 
 def main(argv):
+    # Log startup parameters
+    print("=" * 60)
+    print("Genesis Grasp Shaking Test - Configuration")
+    print("=" * 60)
+    print(f"  Object:    {_Obj.value}")
+    print(f"  Shake:     {_Shake.value}")
+    print(f"  Record:    {_Record.value}")
+    print(f"  Timestep:  {_Dt.value}")
+    print(f"  Use MJX:   {_UseMJX.value}")
+    print(f"  Visual:    {_Visual.value}")
+    print("=" * 60)
+
     # Initialize Genesis
     gs.init()
 
@@ -127,7 +139,7 @@ def main(argv):
     # Initialize output and tracking
     output_dir = ensure_output_directory()
     video_path = generate_video_path(
-        "genesis", _Obj.value, _Shake.value, _UseMJX.value, _Dt.value, output_dir
+        "genesis", _Obj.value, _Shake.value, _UseMJX.value, "default", _Dt.value, output_dir
     )
     test_passed = True
     drop_time = None
@@ -218,6 +230,7 @@ def main(argv):
             _Obj.value,
             _Shake.value,
             _UseMJX.value,
+            "default",
             _Dt.value,
         )
 

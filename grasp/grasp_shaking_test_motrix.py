@@ -65,6 +65,18 @@ lift_qpos = np.array(
 # - Press and hold left button then drag to rotate the camera/view
 # - Press and hold right button then drag to pan/translate the view
 def main(argv):
+    # Log startup parameters
+    print("=" * 60)
+    print("Motrix Grasp Shaking Test - Configuration")
+    print("=" * 60)
+    print(f"  Object:    {_Obj.value}")
+    print(f"  Shake:     {_Shake.value}")
+    print(f"  Record:    {_Record.value}")
+    print(f"  Timestep:  {_Dt.value}")
+    print(f"  Use MJX:   {_UseMJX.value}")
+    print(f"  Visual:    {_Visual.value}")
+    print("=" * 60)
+
     # Create render window for visualization
     show_visualizer = _Visual.value
     headless = _Record.value and not show_visualizer
@@ -112,7 +124,7 @@ def main(argv):
     # Initialize output directory and video path
     output_dir = ensure_output_directory()
     video_path = generate_video_path(
-        "motrix", _Obj.value, _Shake.value, _UseMJX.value, _Dt.value, output_dir
+        "motrix", _Obj.value, _Shake.value, _UseMJX.value, "default", _Dt.value, output_dir
     )
     drop_time = None  # Track when object drops
     step_cnt = 0
@@ -160,6 +172,7 @@ def main(argv):
                             _Obj.value,
                             _Shake.value,
                             _UseMJX.value,
+                            "default",
                             _Dt.value,
                         )
                     exit(0)
@@ -177,6 +190,7 @@ def main(argv):
                         _Obj.value,
                         _Shake.value,
                         _UseMJX.value,
+                        "default",
                         _Dt.value,
                     )
                 exit(0)

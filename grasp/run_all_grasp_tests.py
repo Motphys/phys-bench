@@ -106,6 +106,12 @@ Examples:
         help="Comma-separated list of dt values (default: 0.002,0.01)",
     )
     parser.add_argument(
+        "--integrators",
+        type=str,
+        default="euler,implicit,implicit_noslip",
+        help="Comma-separated list of integrators to test for MuJoCo (default: euler,implicit,implicit_noslip)",
+    )
+    parser.add_argument(
         "--shake",
         action="store_true",
         default=True,
@@ -151,7 +157,12 @@ def get_engine_config(engine_name: str) -> Dict:
 
 
 def run_single_test(
-    engine: str, object_name: str, dt: float, shake: bool, verbose: bool = False
+    engine: str,
+    object_name: str,
+    dt: float,
+    shake: bool,
+    integrator: str = "euler",
+    verbose: bool = False,
 ) -> Tuple[bool, str]:
     """Run a single test and return (success, output)."""
     config = get_engine_config(engine)
@@ -190,6 +201,15 @@ def run_single_test(
     if shake:
         cmd.append("--shake")
 
+    # Add integrator flag for MuJoCo
+    if engine == "mujoco":
+        # Parse implicit_noslip -> integrator="implicit", noslip_iterations=1
+        if integrator == "implicit_noslip":
+            cmd.append("--integrator=implicit")
+            cmd.append("--noslip_iterations=1")
+        else:
+            cmd.append(f"--integrator={integrator}")
+
     if verbose:
         print(f"  Running: {' '.join(cmd)}")
 
@@ -199,7 +219,6 @@ def run_single_test(
             cmd,
             capture_output=True,
             text=True,
-            timeout=60,  # 1 minute timeout per test (some tests may hang)
         )
 
         # Check for success indicators in output
@@ -210,14 +229,19 @@ def run_single_test(
         )
 
         return success, output
-    except subprocess.TimeoutExpired as e:
-        # Get partial output
-        output = e.stdout.decode() if e.stdout else ""
-        output += e.stderr.decode() if e.stderr else ""
-        output += "\n[TIMEOUT] Test timed out after 60 seconds"
-        return False, output
     except Exception as e:
         return False, f"Error running test: {e}"
+
+
+def get_test_display_name(engine: str, integrator: str) -> str:
+    """Get display name for test configuration."""
+    if engine == "mujoco":
+        if integrator == "implicit_noslip":
+            return "mujoco_implicit_noslip"
+        elif integrator:
+            return f"mujoco_{integrator}"
+        return "mujoco_euler"
+    return engine
 
 
 def run_all_tests(
@@ -225,65 +249,85 @@ def run_all_tests(
     objects: List[str],
     dt_values: List[float],
     shake: bool,
+    integrators: List[str] = None,
     verbose: bool = False,
     parallel: bool = False,
 ) -> Dict[str, Dict]:
     """Run all test combinations and collect results.
 
     Returns:
-        Dict mapping test_key to {success, output, engine, object, dt, shake}
+        Dict mapping test_key to {success, output, engine, object, dt, shake, integrator}
     """
+    if integrators is None:
+        integrators = ["euler"]
+
     results = {}
     # Calculate actual total tests (accounting for engine-specific limitations)
     total_tests = 0
     for engine in engines:
         for obj in objects:
-            # Skip bottle for IsaacSim (not yet supported)
-            if engine == "isaacsim" and obj == "bottle":
-                continue
-            total_tests += len(dt_values)
+            if engine == "mujoco":
+                total_tests += len(dt_values) * len(integrators)
+            else:
+                total_tests += len(dt_values)
     completed = 0
 
-    print(f"\n{'=' * 70}")
+    print(f"\n{'=' * 80}")
     print(f"Running {total_tests} grasp benchmark tests")
-    print(f"{'=' * 70}\n")
+    print(f"{'=' * 80}\n")
 
     for engine in engines:
         for obj in objects:
-            for dt in dt_values:
-                test_key = f"{engine}_{obj}_dt{dt:.3f}"
-                completed += 1
+            # Determine integrators to use for this engine
+            if engine == "mujoco":
+                engine_integrators = integrators
+            else:
+                engine_integrators = [""]  # Empty string for non-MuJoCo engines
 
-                print(f"[{completed}/{total_tests}] {test_key}...", end=" ", flush=True)
+            for integrator in engine_integrators:
+                # Build display name for this test configuration
+                engine_display = get_test_display_name(engine, integrator)
 
-                success, output = run_single_test(engine, obj, dt, shake, verbose)
+                for dt in dt_values:
+                    integrator_suffix = f"_{integrator}" if integrator else ""
+                    test_key = f"{engine}_{obj}{integrator_suffix}_dt{dt:.3f}"
+                    completed += 1
 
-                # Check if test timed out
-                if "TIMEOUT" in output:
-                    status = "TIMEOUT"
-                else:
-                    status = "PASSED" if success else "FAILED"
-                print(f"{status}")
+                    # Create status display
+                    status_placeholder = f"[{completed}/{total_tests}] {engine_display:25s} | {obj:6s} | dt={dt:.3f}"
+                    print(f"{status_placeholder}...", end=" ", flush=True)
 
-                if not success and verbose and "TIMEOUT" not in output:
-                    # Print first few lines of error output
-                    lines = output.strip().split("\n")[:5]
-                    for line in lines:
-                        if line.strip():
-                            print(f"  {line}")
+                    success, output = run_single_test(
+                        engine, obj, dt, shake, integrator if integrator else "", verbose
+                    )
 
-                results[test_key] = {
-                    "success": success,
-                    "output": output,
-                    "engine": engine,
-                    "object": obj,
-                    "dt": dt,
-                    "shake": shake,
-                }
+                    # Determine test status
+                    if success:
+                        status = "\033[92mPASSED\033[0m"  # Green
+                    else:
+                        status = "\033[91mFAILED\033[0m"  # Red
+                    print(f"{status}")
 
-    print(f"\n{'=' * 70}")
+                    if not success and verbose:
+                        # Print first few lines of error output
+                        lines = output.strip().split("\n")[:5]
+                        for line in lines:
+                            if line.strip():
+                                print(f"  {line}")
+
+                    results[test_key] = {
+                        "success": success,
+                        "output": output,
+                        "engine": engine,
+                        "object": obj,
+                        "dt": dt,
+                        "shake": shake,
+                        "integrator": integrator if integrator else "default",
+                    }
+
+    print(f"\n{'=' * 80}")
     print(f"Completed {completed} tests")
-    print(f"{'=' * 70}\n")
+    print(f"{'=' * 80}\n")
 
     return results
 
@@ -292,17 +336,12 @@ def print_summary(results: Dict[str, Dict]):
     """Print summary statistics."""
     total = len(results)
     passed = sum(1 for r in results.values() if r["success"])
-    timed_out = sum(1 for r in results.values() if "TIMEOUT" in r.get("output", ""))
-    failed = total - passed - timed_out
+    failed = total - passed
 
     print("Summary:")
     print(f"  Total:    {total}")
     print(f"  Passed:   {passed} ({passed * 100 // total if total else 0}%)")
     print(f"  Failed:   {failed} ({failed * 100 // total if total else 0}%)")
-    if timed_out > 0:
-        print(f"  Timed out: {timed_out} ({timed_out * 100 // total if total else 0}%)")
-        print("\n  Note: Some tests timed out - this may indicate a bug in the engine")
-        print("        for specific object types. See verbose output for details.")
 
     # Group by engine
     print("\nBy Engine:")
@@ -358,6 +397,7 @@ def main():
     engines = [e.strip() for e in args.engines.split(",")]
     objects = [o.strip() for o in args.objects.split(",")]
     dt_values = [float(dt.strip()) for dt in args.dt_values.split(",")]
+    integrators = [i.strip() for i in args.integrators.split(",")]
     shake = args.shake and not args.no_shake
 
     # Validate engines
@@ -381,6 +421,7 @@ def main():
         objects=objects,
         dt_values=dt_values,
         shake=shake,
+        integrators=integrators,
         verbose=args.verbose,
         parallel=args.parallel,
     )

@@ -11,15 +11,20 @@ import os
 import time
 
 import mujoco
+import mujoco.viewer
 from mujoco import rollout
 import numpy as np
 
 
 def main():
     parser = argparse.ArgumentParser(description="MuJoCo CPU Rollout Benchmark")
-    parser.add_argument("-B", type=int, default=1, help="Batch size (number of parallel environments)")
+    parser.add_argument(
+        "-B", type=int, default=1, help="Batch size (number of parallel environments)"
+    )
     parser.add_argument("-T", type=int, default=1, help="Number of CPU threads")
-    parser.add_argument("-v", action="store_true", default=False, help="Visualize (single env only)")
+    parser.add_argument(
+        "-v", action="store_true", default=False, help="Visualize (single env only)"
+    )
     args = parser.parse_args()
 
     n_envs = args.B
@@ -30,19 +35,23 @@ def main():
         os.path.join(os.path.dirname(__file__), "../assets/grasp/mjx_pick_cube.xml")
     )
     model = mujoco.MjModel.from_xml_path(model_path)
-    model.opt.timestep = 0.01  # Match other benchmarks (100 Hz)
+    # mujoco failed to pick cube in euler interator. so we use implicit.
+    model.opt.integrator = mujoco.mjtIntegrator.mjINT_IMPLICIT
+    # model.opt.noslip_iterations = 1
+    # mujoco failed to pick cube in 0.01 timestep. so we use 0.005
+    model.opt.timestep = 0.005
 
     # Create data instances for threads
     data_list = [mujoco.MjData(model) for _ in range(n_threads)]
-    
+
     # Reference positions
     grasp_qpos = np.array(
         [-1.0104, 1.5623, 1.3601, -1.6840, -1.5863, 1.7810, 1.4598, 0.04, 0.04],
-        dtype=np.float64
+        dtype=np.float64,
     )
     lift_qpos = np.array(
         [-1.0426, 1.4028, 1.5634, -1.7114, -1.4055, 1.6015, 1.4510, 0.0, 0.0],
-        dtype=np.float64
+        dtype=np.float64,
     )
 
     # Get state size
@@ -55,7 +64,7 @@ def main():
     data.ctrl[:7] = grasp_qpos[:7]
     data.ctrl[7] = 0.0  # Gripper closed
     mujoco.mj_forward(model, data)
-    
+
     # Get initial state
     initial_state_grasp = np.zeros((n_envs, nstate), dtype=np.float64)
     state_buf = np.zeros(nstate, dtype=np.float64)
@@ -76,10 +85,10 @@ def main():
 
     ########################## Warmup Phase 1: Grasp (100 steps) ##########################
     print("Warmup Phase 1: Grasping (100 steps)...")
-    
+
     # Pre-allocate state array to receive trajectory (nstep, not nstep+1)
     state_grasp = np.zeros((n_envs, warmup1_steps, nstate), dtype=np.float64)
-    
+
     # Run warmup 1
     rollout.rollout(
         model,
@@ -94,7 +103,7 @@ def main():
 
     ########################## Warmup Phase 2: Lift (50 steps) ##########################
     print("Warmup Phase 2: Lifting (50 steps)...")
-    
+
     warmup2_steps = 50
     control_lift = np.zeros((n_envs, warmup2_steps, nctrl), dtype=np.float64)
     ctrl_lift = np.zeros(nctrl, dtype=np.float64)
@@ -119,9 +128,9 @@ def main():
 
     ########################## Benchmark ##########################
     print("Benchmark: 500 steps...")
-    
+
     benchmark_steps = 500
-    
+
     # Fixed position control for pure physics benchmark
     control_bench = np.zeros((n_envs, benchmark_steps, nctrl), dtype=np.float64)
     control_bench[:, :, :7] = lift_qpos[:7]
@@ -135,7 +144,7 @@ def main():
 
     # Run benchmark with timing
     t0 = time.perf_counter()
-    
+
     rollout.rollout(
         model,
         data_list,
@@ -143,7 +152,7 @@ def main():
         control_bench,
         state=state_bench,
     )
-    
+
     t1 = time.perf_counter()
 
     # Calculate and print results
@@ -161,9 +170,10 @@ def main():
             # Replay the benchmark trajectory
             for step in range(benchmark_steps):
                 mujoco.mj_setState(
-                    model, data,
+                    model,
+                    data,
                     state_bench[0, step, :],
-                    mujoco.mjtState.mjSTATE_FULLPHYSICS
+                    mujoco.mjtState.mjSTATE_FULLPHYSICS,
                 )
                 mujoco.mj_forward(model, data)
                 viewer.sync()

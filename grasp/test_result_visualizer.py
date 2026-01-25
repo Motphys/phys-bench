@@ -19,6 +19,28 @@ from pathlib import Path
 from typing import List, Dict
 from test_output_utils import load_test_results, generate_summary_stats
 
+# Define engine display order for consistent reporting
+ENGINE_ORDER = [
+    "motrix",
+    "isaacsim",
+    "genesis",
+    "mujoco_euler",
+    "mujoco_implicit",
+    "mujoco_implicit_noslip",
+]
+
+
+def sort_engines(engines):
+    """Sort engines according to predefined order, with unknown engines at the end."""
+    def sort_key(engine):
+        try:
+            return ENGINE_ORDER.index(engine)
+        except ValueError:
+            # Unknown engines go after known ones, sorted alphabetically
+            return len(ENGINE_ORDER) + engine
+
+    return sorted(engines, key=sort_key)
+
 
 def _make_relative_to_html(video_path: str, html_output_path: str) -> str:
     """Convert video path to be relative to HTML file location.
@@ -55,6 +77,8 @@ def generate_html_report(
         title: Title for the HTML page
     """
     results = load_test_results(results_dir)
+    # For MuJoCo, merge integrator into engine name for display
+    results = _merge_mujoco_integrator_to_engine(results)
     stats = generate_summary_stats(results)
 
     html = _create_html_template(title, results, stats, output_path)
@@ -65,6 +89,33 @@ def generate_html_report(
         f.write(html)
 
     print(f"✅ Report generated: {output_path}")
+
+
+def _merge_mujoco_integrator_to_engine(results: List[Dict]) -> List[Dict]:
+    """Merge MuJoCo integrator into engine name for display in report.
+
+    For MuJoCo results, append integrator to engine name (e.g., "mujoco_euler", "mujoco_implicit").
+    If noslip_iterations > 0, append _noslip suffix (e.g., "mujoco_implicit_noslip").
+    For other engines, keep engine name as-is.
+
+    Args:
+        results: List of test result dicts
+
+    Returns:
+        Modified results with engine name updated for MuJoCo
+    """
+    modified = []
+    for r in results:
+        r_copy = r.copy()
+        if r["engine"] == "mujoco":
+            integrator = r.get("integrator", "euler")
+            noslip_iterations = r.get("noslip_iterations", 0)
+            engine_name = f"mujoco_{integrator}"
+            if noslip_iterations > 0:
+                engine_name = f"{engine_name}_noslip"
+            r_copy["engine"] = engine_name
+        modified.append(r_copy)
+    return modified
 
 
 def _create_html_template(
@@ -617,7 +668,7 @@ def _get_success_rate_by_dimension_html(stats: Dict) -> str:
 def _get_comparison_matrix_html(results: List[Dict]) -> str:
     """Generate pivot table matrix with engines vs (object, dt)."""
     # Get unique values
-    engines = sorted(set(r["engine"] for r in results))
+    engines = sort_engines(set(r["engine"] for r in results))
     objects = sorted(set(r["object"] for r in results))
     dt_values = sorted(set(r["dt"] for r in results))
 
@@ -877,7 +928,8 @@ def _get_engine_success_cards_html(stats: Dict) -> str:
     """Generate horizontal cards showing each engine's success rate."""
     cards = []
 
-    for engine, engine_stats in sorted(stats["by_engine"].items()):
+    for engine in sort_engines(stats["by_engine"].keys()):
+        engine_stats = stats["by_engine"][engine]
         total = engine_stats["total"]
         success = engine_stats["success"]
         rate = (success / total * 100) if total > 0 else 0
@@ -909,7 +961,7 @@ def _get_engine_config_matrix_html(results: List[Dict]) -> str:
     from test_output_utils import get_config_combinations
 
     # Get unique values
-    engines = sorted(set(r["engine"] for r in results))
+    engines = sort_engines(set(r["engine"] for r in results))
     objects = sorted(set(r["object"] for r in results))
     dt_values = sorted(set(r["dt"] for r in results))
 
@@ -919,7 +971,8 @@ def _get_engine_config_matrix_html(results: List[Dict]) -> str:
     # Create result lookup: (engine, object, dt) -> result
     result_lookup = {}
     for r in results:
-        result_lookup[(r["engine"], r["object"], r["dt"])] = r
+        key = (r["engine"], r["object"], r["dt"])
+        result_lookup[key] = r
 
     html = f"""
     <div class="engine-matrix-wrapper">
@@ -1054,8 +1107,18 @@ def _get_dt_subsection_html(dt_value: float, engine_results: List[Dict], html_ou
         <div class="engine-comparison-grid">
     '''
 
+    # Sort engine results by engine order
+    def engine_sort_key(result):
+        engine = result["engine"]
+        try:
+            return ENGINE_ORDER.index(engine)
+        except ValueError:
+            # Unknown engines go after known ones, sorted alphabetically
+            return len(ENGINE_ORDER)
+    sorted_results = sorted(engine_results, key=engine_sort_key)
+
     # Generate card for each engine
-    for result in engine_results:
+    for result in sorted_results:
         status_class = "success" if result["status"] == "success" else "failure"
 
         # Video path

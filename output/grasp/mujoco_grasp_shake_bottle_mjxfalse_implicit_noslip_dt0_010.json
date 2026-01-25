@@ -1,0 +1,13 @@
+{
+  "video_path": "output/grasp/mujoco_grasp_shake_bottle_mjxfalse_implicit_noslip_dt0_010.mp4",
+  "status": "failure",
+  "drop_time": 5.07,
+  "engine": "mujoco",
+  "object": "bottle",
+  "task": "shake",
+  "mjx": false,
+  "integrator": "implicit",
+  "dt": 0.01,
+  "noslip_iterations": 1,
+  "timestamp": "2026-01-24T21:42:54.172670"
+}

@@ -6,6 +6,8 @@
   "object": "ball",
   "task": "shake",
   "mjx": false,
+  "integrator": "default",
   "dt": 0.01,
-  "timestamp": "2026-01-22T13:55:23.141058"
+  "noslip_iterations": 0,
+  "timestamp": "2026-01-24T21:44:17.239271"
 }
