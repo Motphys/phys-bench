@@ -5,7 +5,7 @@ description = "Benchmark suite for different physical simulation libraries."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "motrixsim===0.6.0b0",
+    "motrixsim===0.6.0b0.post0.dev87952",
     "numpy-quaternion>=2024.0.8",
     "imageio[ffmpeg]>=2.37.2",
 ]
@@ -24,8 +24,14 @@ genesis = [
 torch = { index = "pytorch" }
 torchvision = { index = "pytorch" }
 torchaudio = { index = "pytorch" }
+motrixsim = { index = "motrixsim_priv" }
 
 [[tool.uv.index]]
 name = "pytorch"
 url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[[tool.uv.index]]
+name = "motrixsim_priv"
+url = "https://pypi.motphys.com/simple"
 explicit = true
