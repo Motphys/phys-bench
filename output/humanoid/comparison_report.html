@@ -59,6 +59,37 @@
             margin-top: 0.25rem;
         }
 
+        /* CPU Tabs */
+        .cpu-tabs {
+            background: var(--card-bg);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            position: sticky;
+            top: 72px;
+            z-index: 100;
+        }
+        .cpu-tab {
+            padding: 0.5rem 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: var(--bg);
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .cpu-tab:hover {
+            background: #e2e8f0;
+        }
+        .cpu-tab.active {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
         /* Navigation */
         nav {
             background: var(--card-bg);
@@ -68,7 +99,7 @@
             gap: 0.5rem;
             overflow-x: auto;
             position: sticky;
-            top: 72px;
+            top: 130px;
             z-index: 99;
         }
         .nav-tab {
@@ -255,8 +286,14 @@
 <body>
     <header>
         <h1>Humanoid Benchmark Performance Report</h1>
-        <div class="subtitle">CPU: Intel_R__Core_TM__i5-10600KF_CPU___4_10GHz | Generated: 2026-01-26 00:16:52</div>
+        <div class="subtitle">Generated: 2026-01-26 13:58:14</div>
     </header>
+
+            <div class="cpu-tabs">
+            <button class="cpu-tab active" data-cpu="AMD_Ryzen_9_9950X_16-Core_Processor">AMD Ryzen 9 9950X 16-Core Processor</button>
+            <button class="cpu-tab " data-cpu="Intel_R__Core_TM__i5-10600KF_CPU___4_10GHz">Intel R Core TM i5-10600KF CPU  4 10GHz</button>
+        </div>
+
 
     <nav>
         <button class="nav-tab active" data-target="by-n">By Humanoid Count</button>
@@ -264,8 +301,9 @@
         <button class="nav-tab" data-target="detailed">Detailed Data</button>
     </nav>
 
-    <main>
-        <section class="charts-section" id="by-n"><h2>Performance by Humanoid Count (N)</h2>
+    <main id="main-content">
+        <div id="charts-container">
+            <section class="charts-section" id="by-n"><h2>Performance by Humanoid Count (N)</h2>
         <div class="chart-container">
             <canvas id="chart-n1"></canvas>
         </div>
@@ -282,8 +320,7 @@
             <canvas id="chart-n50"></canvas>
         </div>
         </section>
-
-        <section class="charts-section" id="by-b"><h2>Performance by Batch Size (B)</h2>
+            <section class="charts-section" id="by-b"><h2>Performance by Batch Size (B)</h2>
         <div class="chart-container">
             <canvas id="chart-b1"></canvas>
         </div>
@@ -296,7 +333,7 @@
             <canvas id="chart-b1024"></canvas>
         </div>
         </section>
-
+        </div>
         <section class="detailed-table-section" id="detailed"><h2>Detailed Data</h2>
     <div class="filter-controls">
         <label>Filter by N: <select id="filter-n">
@@ -322,140 +359,140 @@
                     <td>motrix</td>
                     <td>1</td>
                     <td>1</td>
-                    <td>8,699.65</td>
+                    <td>19,039.03</td>
                 </tr>
         
                 <tr data-n="1" data-b="512">
                     <td>motrix</td>
                     <td>1</td>
                     <td>512</td>
-                    <td>44,978.53</td>
+                    <td>206,807.34</td>
                 </tr>
         
                 <tr data-n="1" data-b="1024">
                     <td>motrix</td>
                     <td>1</td>
                     <td>1024</td>
-                    <td>44,109.96</td>
+                    <td>223,630.40</td>
                 </tr>
         
                 <tr data-n="5" data-b="1">
                     <td>motrix</td>
                     <td>5</td>
                     <td>1</td>
-                    <td>2,906.85</td>
+                    <td>6,518.21</td>
                 </tr>
         
                 <tr data-n="5" data-b="512">
                     <td>motrix</td>
                     <td>5</td>
                     <td>512</td>
-                    <td>8,887.22</td>
+                    <td>42,064.47</td>
                 </tr>
         
                 <tr data-n="5" data-b="1024">
                     <td>motrix</td>
                     <td>5</td>
                     <td>1024</td>
-                    <td>9,290.32</td>
+                    <td>41,806.82</td>
                 </tr>
         
                 <tr data-n="10" data-b="1">
                     <td>motrix</td>
                     <td>10</td>
                     <td>1</td>
-                    <td>2,095.49</td>
+                    <td>3,917.01</td>
                 </tr>
         
                 <tr data-n="10" data-b="512">
                     <td>motrix</td>
                     <td>10</td>
                     <td>512</td>
-                    <td>4,755.71</td>
+                    <td>22,005.13</td>
                 </tr>
         
                 <tr data-n="10" data-b="1024">
                     <td>motrix</td>
                     <td>10</td>
                     <td>1024</td>
-                    <td>4,799.89</td>
+                    <td>21,665.04</td>
                 </tr>
         
                 <tr data-n="50" data-b="1">
                     <td>motrix</td>
                     <td>50</td>
                     <td>1</td>
-                    <td>530.58</td>
+                    <td>989.50</td>
                 </tr>
         
                 <tr data-n="1" data-b="1">
                     <td>mujoco</td>
                     <td>1</td>
                     <td>1</td>
-                    <td>11,942.66</td>
+                    <td>23,007.55</td>
                 </tr>
         
                 <tr data-n="1" data-b="512">
                     <td>mujoco</td>
                     <td>1</td>
                     <td>512</td>
-                    <td>108,833.50</td>
+                    <td>150,075.59</td>
                 </tr>
         
                 <tr data-n="1" data-b="1024">
                     <td>mujoco</td>
                     <td>1</td>
                     <td>1024</td>
-                    <td>108,880.31</td>
+                    <td>380,896.16</td>
                 </tr>
         
                 <tr data-n="5" data-b="1">
                     <td>mujoco</td>
                     <td>5</td>
                     <td>1</td>
-                    <td>1,534.84</td>
+                    <td>2,881.24</td>
                 </tr>
         
                 <tr data-n="5" data-b="512">
                     <td>mujoco</td>
                     <td>5</td>
                     <td>512</td>
-                    <td>7,753.70</td>
+                    <td>46,596.12</td>
                 </tr>
         
                 <tr data-n="5" data-b="1024">
                     <td>mujoco</td>
                     <td>5</td>
                     <td>1024</td>
-                    <td>8,303.09</td>
+                    <td>48,542.08</td>
                 </tr>
         
                 <tr data-n="10" data-b="1">
                     <td>mujoco</td>
                     <td>10</td>
                     <td>1</td>
-                    <td>478.26</td>
+                    <td>885.79</td>
                 </tr>
         
                 <tr data-n="10" data-b="512">
                     <td>mujoco</td>
                     <td>10</td>
                     <td>512</td>
-                    <td>1,425.66</td>
+                    <td>11,934.23</td>
                 </tr>
         
                 <tr data-n="10" data-b="1024">
                     <td>mujoco</td>
                     <td>10</td>
                     <td>1024</td>
-                    <td>1,446.12</td>
+                    <td>12,239.67</td>
                 </tr>
         
                 <tr data-n="50" data-b="1">
                     <td>mujoco</td>
                     <td>50</td>
                     <td>1</td>
-                    <td>18.38</td>
+                    <td>35.53</td>
                 </tr>
         
             </tbody>
@@ -466,259 +503,48 @@
     </main>
 
     <script>
-        // Initialize all charts after DOM is ready
-        document.addEventListener('DOMContentLoaded', function() {
-            const chartConfigs = [
-{
-        id: 'chart-n1',
-        config: {
-            type: 'bar',
-            data: {
-                labels: ["B=1", "B=512", "B=1024"],
-                datasets: [{"label": "Motrix", "data": [8699.65, 44978.53, 44109.96], "backgroundColor": "#3b82f6"}, {"label": "MuJoCo", "data": [11942.66, 108833.5, 108880.31], "backgroundColor": "#ef4444"}]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'N=1 Humanoids - Total FPS',
-                        font: { size: 16 }
-                    },
-                    legend: {
-                        position: 'top'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'FPS (total)'
-                        }
-                    }
-                }
-            }
-        }
-    },
-{
-        id: 'chart-n5',
-        config: {
-            type: 'bar',
-            data: {
-                labels: ["B=1", "B=512", "B=1024"],
-                datasets: [{"label": "Motrix", "data": [2906.85, 8887.22, 9290.32], "backgroundColor": "#3b82f6"}, {"label": "MuJoCo", "data": [1534.84, 7753.7, 8303.09], "backgroundColor": "#ef4444"}]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'N=5 Humanoids - Total FPS',
-                        font: { size: 16 }
-                    },
-                    legend: {
-                        position: 'top'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'FPS (total)'
-                        }
-                    }
-                }
-            }
-        }
-    },
-{
-        id: 'chart-n10',
-        config: {
-            type: 'bar',
-            data: {
-                labels: ["B=1", "B=512", "B=1024"],
-                datasets: [{"label": "Motrix", "data": [2095.49, 4755.71, 4799.89], "backgroundColor": "#3b82f6"}, {"label": "MuJoCo", "data": [478.26, 1425.66, 1446.12], "backgroundColor": "#ef4444"}]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'N=10 Humanoids - Total FPS',
-                        font: { size: 16 }
-                    },
-                    legend: {
-                        position: 'top'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'FPS (total)'
-                        }
-                    }
-                }
-            }
-        }
-    },
-{
-        id: 'chart-n50',
-        config: {
-            type: 'bar',
-            data: {
-                labels: ["B=1"],
-                datasets: [{"label": "Motrix", "data": [530.58], "backgroundColor": "#3b82f6"}, {"label": "MuJoCo", "data": [18.38], "backgroundColor": "#ef4444"}]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'N=50 Humanoids - Total FPS',
-                        font: { size: 16 }
-                    },
-                    legend: {
-                        position: 'top'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'FPS (total)'
-                        }
-                    }
-                }
-            }
-        }
-    },
-{
-        id: 'chart-b1',
-        config: {
-            type: 'bar',
-            data: {
-                labels: ["N=1", "N=5", "N=10", "N=50"],
-                datasets: [{"label": "Motrix", "data": [8699.65, 2906.85, 2095.49, 530.58], "backgroundColor": "#3b82f6"}, {"label": "MuJoCo", "data": [11942.66, 1534.84, 478.26, 18.38], "backgroundColor": "#ef4444"}]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'B=1 Batch Size - Total FPS',
-                        font: { size: 16 }
-                    },
-                    legend: {
-                        position: 'top'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'FPS (total)'
-                        }
-                    }
-                }
-            }
-        }
-    },
-{
-        id: 'chart-b512',
-        config: {
-            type: 'bar',
-            data: {
-                labels: ["N=1", "N=5", "N=10"],
-                datasets: [{"label": "Motrix", "data": [44978.53, 8887.22, 4755.71], "backgroundColor": "#3b82f6"}, {"label": "MuJoCo", "data": [108833.5, 7753.7, 1425.66], "backgroundColor": "#ef4444"}]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'B=512 Batch Size - Total FPS',
-                        font: { size: 16 }
-                    },
-                    legend: {
-                        position: 'top'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'FPS (total)'
-                        }
-                    }
-                }
-            }
-        }
-    },
-{
-        id: 'chart-b1024',
-        config: {
-            type: 'bar',
-            data: {
-                labels: ["N=1", "N=5", "N=10"],
-                datasets: [{"label": "Motrix", "data": [44109.96, 9290.32, 4799.89], "backgroundColor": "#3b82f6"}, {"label": "MuJoCo", "data": [108880.31, 8303.09, 1446.12], "backgroundColor": "#ef4444"}]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'B=1024 Batch Size - Total FPS',
-                        font: { size: 16 }
-                    },
-                    legend: {
-                        position: 'top'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'FPS (total)'
-                        }
-                    }
-                }
-            }
-        }
-    }
-];
+        // All CPU data
+        const allCpuData = {"AMD_Ryzen_9_9950X_16-Core_Processor": {"stats": {"total": 20, "best_per_env_fps": 23007.55, "best_total_fps": 380896.16, "by_engine": {"mujoco": {"count": 10, "avg_per_env_fps": 2764.8869999999997, "avg_total_fps": 67709.39600000001, "best_per_env_fps": 23007.55, "best_total_fps": 380896.16}, "motrix": {"count": 10, "avg_per_env_fps": 3127.319, "avg_total_fps": 58844.295, "best_per_env_fps": 19039.03, "best_total_fps": 223630.4}}, "by_N": {"5": {"count": 6, "avg_per_env_fps": 1610.1416666666667, "avg_total_fps": 31401.49}, "10": {"count": 6, "avg_per_env_fps": 817.0333333333333, "avg_total_fps": 12107.811666666666}, "1": {"count": 6, "avg_per_env_fps": 7222.329999999999, "avg_total_fps": 167242.67833333334}, "50": {"count": 2, "avg_per_env_fps": 512.515, "avg_total_fps": 512.515}}, "by_B": {"1024": {"count": 6, "avg_per_env_fps": 118.61666666666667, "avg_total_fps": 121463.36166666668}, "1": {"count": 8, "avg_per_env_fps": 7159.232499999999, "avg_total_fps": 7159.232499999999}, "512": {"count": 6, "avg_per_env_fps": 156.08333333333334, "avg_total_fps": 79913.81333333334}}}, "chartConfigs": "[\n{\n        id: 'chart-n1',\n        config: {\n            type: 'bar',\n            data: {\n                labels: [\"B=1\", \"B=512\", \"B=1024\"],\n                datasets: [{\"label\": \"Motrix\", \"data\": [19039.03, 206807.34, 223630.4], \"backgroundColor\": \"#3b82f6\"}, {\"label\": \"MuJoCo\", \"data\": [23007.55, 150075.59, 380896.16], \"backgroundColor\": \"#ef4444\"}]\n            },\n            options: {\n                responsive: true,\n                maintainAspectRatio: false,\n                plugins: {\n                    title: {\n                        display: true,\n                        text: 'N=1 Humanoids - Total FPS',\n                        font: { size: 16 }\n                    },\n                    legend: {\n                        position: 'top'\n                    }\n                },\n                scales: {\n                    y: {\n                        beginAtZero: true,\n                        title: {\n                            display: true,\n                            text: 'FPS (total)'\n                        }\n                    }\n                }\n            }\n        }\n    },\n{\n        id: 'chart-n5',\n        config: {\n            type: 'bar',\n            data: {\n                labels: [\"B=1\", \"B=512\", \"B=1024\"],\n                datasets: [{\"label\": \"Motrix\", \"data\": [6518.21, 42064.47, 41806.82], \"backgroundColor\": \"#3b82f6\"}, {\"label\": \"MuJoCo\", \"data\": [2881.24, 46596.12, 48542.08], \"backgroundColor\": \"#ef4444\"}]\n            },\n            options: {\n                responsive: true,\n                maintainAspectRatio: false,\n                plugins: {\n                    title: {\n                        display: true,\n                        text: 'N=5 Humanoids - Total FPS',\n                        font: { size: 16 }\n                    },\n                    legend: {\n                        position: 'top'\n                    }\n                },\n                scales: {\n                    y: {\n                        beginAtZero: true,\n                        title: {\n                            display: true,\n                            text: 'FPS (total)'\n                        }\n                    }\n                }\n            }\n        }\n    },\n{\n        id: 'chart-n10',\n        config: {\n            type: 'bar',\n            data: {\n                labels: [\"B=1\", \"B=512\", \"B=1024\"],\n                datasets: [{\"label\": \"Motrix\", \"data\": [3917.01, 22005.13, 21665.04], \"backgroundColor\": \"#3b82f6\"}, {\"label\": \"MuJoCo\", \"data\": [885.79, 11934.23, 12239.67], \"backgroundColor\": \"#ef4444\"}]\n            },\n            options: {\n                responsive: true,\n                maintainAspectRatio: false,\n                plugins: {\n                    title: {\n                        display: true,\n                        text: 'N=10 Humanoids - Total FPS',\n                        font: { size: 16 }\n                    },\n                    legend: {\n                        position: 'top'\n                    }\n                },\n                scales: {\n                    y: {\n                        beginAtZero: true,\n                        title: {\n                            display: true,\n                            text: 'FPS (total)'\n                        }\n                    }\n                }\n            }\n        }\n    },\n{\n        id: 'chart-n50',\n        config: {\n            type: 'bar',\n            data: {\n                labels: [\"B=1\"],\n                datasets: [{\"label\": \"Motrix\", \"data\": [989.5], \"backgroundColor\": \"#3b82f6\"}, {\"label\": \"MuJoCo\", \"data\": [35.53], \"backgroundColor\": \"#ef4444\"}]\n            },\n            options: {\n                responsive: true,\n                maintainAspectRatio: false,\n                plugins: {\n                    title: {\n                        display: true,\n                        text: 'N=50 Humanoids - Total FPS',\n                        font: { size: 16 }\n                    },\n                    legend: {\n                        position: 'top'\n                    }\n                },\n                scales: {\n                    y: {\n                        beginAtZero: true,\n                        title: {\n                            display: true,\n                            text: 'FPS (total)'\n                        }\n                    }\n                }\n            }\n        }\n    },\n{\n        id: 'chart-b1',\n        config: {\n            type: 'bar',\n            data: {\n                labels: [\"N=1\", \"N=5\", \"N=10\", \"N=50\"],\n                datasets: [{\"label\": \"Motrix\", \"data\": [19039.03, 6518.21, 3917.01, 989.5], \"backgroundColor\": \"#3b82f6\"}, {\"label\": \"MuJoCo\", \"data\": [23007.55, 2881.24, 885.79, 35.53], \"backgroundColor\": \"#ef4444\"}]\n            },\n            options: {\n                responsive: true,\n                maintainAspectRatio: false,\n                plugins: {\n                    title: {\n                        display: true,\n                        text: 'B=1 Batch Size - Total FPS',\n                        font: { size: 16 }\n                    },\n                    legend: {\n                        position: 'top'\n                    }\n                },\n                scales: {\n                    y: {\n                        beginAtZero: true,\n                        title: {\n                            display: true,\n                            text: 'FPS (total)'\n                        }\n                    }\n                }\n            }\n        }\n    },\n{\n        id: 'chart-b512',\n        config: {\n            type: 'bar',\n            data: {\n                labels: [\"N=1\", \"N=5\", \"N=10\"],\n                datasets: [{\"label\": \"Motrix\", \"data\": [206807.34, 42064.47, 22005.13], \"backgroundColor\": \"#3b82f6\"}, {\"label\": \"MuJoCo\", \"data\": [150075.59, 46596.12, 11934.23], \"backgroundColor\": \"#ef4444\"}]\n            },\n            options: {\n                responsive: true,\n                maintainAspectRatio: false,\n                plugins: {\n                    title: {\n                        display: true,\n                        text: 'B=512 Batch Size - Total FPS',\n                        font: { size: 16 }\n                    },\n                    legend: {\n                        position: 'top'\n                    }\n                },\n                scales: {\n                    y: {\n                        beginAtZero: true,\n                        title: {\n                            display: true,\n                            text: 'FPS (total)'\n                        }\n                    }\n                }\n            }\n        }\n    },\n{\n        id: 'chart-b1024',\n        config: {\n            type: 'bar',\n            data: {\n                labels: [\"N=1\", \"N=5\", \"N=10\"],\n                datasets: [{\"label\": \"Motrix\", \"data\": [223630.4, 41806.82, 21665.04], \"backgroundColor\": \"#3b82f6\"}, {\"label\": \"MuJoCo\", \"data\": [380896.16, 48542.08, 12239.67], \"backgroundColor\": \"#ef4444\"}]\n            },\n            options: {\n                responsive: true,\n                maintainAspectRatio: false,\n                plugins: {\n                    title: {\n                        display: true,\n                        text: 'B=1024 Batch Size - Total FPS',\n                        font: { size: 16 }\n                    },\n                    legend: {\n                        position: 'top'\n                    }\n                },\n                scales: {\n                    y: {\n                        beginAtZero: true,\n                        title: {\n                            display: true,\n                            text: 'FPS (total)'\n                        }\n                    }\n                }\n            }\n        }\n    }\n]", "byNHtml": "<section class=\"charts-section\" id=\"by-n\"><h2>Performance by Humanoid Count (N)</h2>\n        <div class=\"chart-container\">\n            <canvas id=\"chart-n1\"></canvas>\n        </div>\n        \n        <div class=\"chart-container\">\n            <canvas id=\"chart-n5\"></canvas>\n        </div>\n        \n        <div class=\"chart-container\">\n            <canvas id=\"chart-n10\"></canvas>\n        </div>\n        \n        <div class=\"chart-container\">\n            <canvas id=\"chart-n50\"></canvas>\n        </div>\n        </section>", "byBHtml": "<section class=\"charts-section\" id=\"by-b\"><h2>Performance by Batch Size (B)</h2>\n        <div class=\"chart-container\">\n            <canvas id=\"chart-b1\"></canvas>\n        </div>\n        \n        <div class=\"chart-container\">\n            <canvas id=\"chart-b512\"></canvas>\n        </div>\n        \n        <div class=\"chart-container\">\n            <canvas id=\"chart-b1024\"></canvas>\n        </div>\n        </section>", "tableHtml": "<section class=\"detailed-table-section\" id=\"detailed\"><h2>Detailed Data</h2>\n    <div class=\"filter-controls\">\n        <label>Filter by N: <select id=\"filter-n\">\n            <option value=\"all\">All</option>\n        </select></label>\n        <label>Filter by B: <select id=\"filter-b\">\n            <option value=\"all\">All</option>\n        </select></label>\n    </div>\n    <div class=\"table-wrapper\">\n        <table class=\"detailed-table\" id=\"detailed-table\">\n            <thead>\n                <tr>\n                    <th>Engine</th>\n                    <th>N (Humanoids)</th>\n                    <th>B (Batch)</th>\n                    <th>Total FPS</th>\n                </tr>\n            </thead>\n            <tbody>\n    \n                <tr data-n=\"1\" data-b=\"1\">\n                    <td>motrix</td>\n                    <td>1</td>\n                    <td>1</td>\n                    <td>19,039.03</td>\n                </tr>\n        \n                <tr data-n=\"1\" data-b=\"512\">\n                    <td>motrix</td>\n                    <td>1</td>\n                    <td>512</td>\n                    <td>206,807.34</td>\n                </tr>\n        \n                <tr data-n=\"1\" data-b=\"1024\">\n                    <td>motrix</td>\n                    <td>1</td>\n                    <td>1024</td>\n                    <td>223,630.40</td>\n                </tr>\n        \n                <tr data-n=\"5\" data-b=\"1\">\n                    <td>motrix</td>\n                    <td>5</td>\n                    <td>1</td>\n                    <td>6,518.21</td>\n                </tr>\n        \n                <tr data-n=\"5\" data-b=\"512\">\n                    <td>motrix</td>\n                    <td>5</td>\n                    <td>512</td>\n                    <td>42,064.47</td>\n                </tr>\n        \n                <tr data-n=\"5\" data-b=\"1024\">\n                    <td>motrix</td>\n                    <td>5</td>\n                    <td>1024</td>\n                    <td>41,806.82</td>\n                </tr>\n        \n                <tr data-n=\"10\" data-b=\"1\">\n                    <td>motrix</td>\n                    <td>10</td>\n                    <td>1</td>\n                    <td>3,917.01</td>\n                </tr>\n        \n                <tr data-n=\"10\" data-b=\"512\">\n                    <td>motrix</td>\n                    <td>10</td>\n                    <td>512</td>\n                    <td>22,005.13</td>\n                </tr>\n        \n                <tr data-n=\"10\" data-b=\"1024\">\n                    <td>motrix</td>\n                    <td>10</td>\n                    <td>1024</td>\n                    <td>21,665.04</td>\n                </tr>\n        \n                <tr data-n=\"50\" data-b=\"1\">\n                    <td>motrix</td>\n                    <td>50</td>\n                    <td>1</td>\n                    <td>989.50</td>\n                </tr>\n        \n                <tr data-n=\"1\" data-b=\"1\">\n                    <td>mujoco</td>\n                    <td>1</td>\n                    <td>1</td>\n                    <td>23,007.55</td>\n                </tr>\n        \n                <tr data-n=\"1\" data-b=\"512\">\n                    <td>mujoco</td>\n                    <td>1</td>\n                    <td>512</td>\n                    <td>150,075.59</td>\n                </tr>\n        \n                <tr data-n=\"1\" data-b=\"1024\">\n                    <td>mujoco</td>\n                    <td>1</td>\n                    <td>1024</td>\n                    <td>380,896.16</td>\n                </tr>\n        \n                <tr data-n=\"5\" data-b=\"1\">\n                    <td>mujoco</td>\n                    <td>5</td>\n                    <td>1</td>\n                    <td>2,881.24</td>\n                </tr>\n        \n                <tr data-n=\"5\" data-b=\"512\">\n                    <td>mujoco</td>\n                    <td>5</td>\n                    <td>512</td>\n                    <td>46,596.12</td>\n                </tr>\n        \n                <tr data-n=\"5\" data-b=\"1024\">\n                    <td>mujoco</td>\n                    <td>5</td>\n                    <td>1024</td>\n                    <td>48,542.08</td>\n                </tr>\n        \n                <tr data-n=\"10\" data-b=\"1\">\n                    <td>mujoco</td>\n                    <td>10</td>\n                    <td>1</td>\n                    <td>885.79</td>\n                </tr>\n        \n                <tr data-n=\"10\" data-b=\"512\">\n                    <td>mujoco</td>\n                    <td>10</td>\n                    <td>512</td>\n                    <td>11,934.23</td>\n                </tr>\n        \n                <tr data-n=\"10\" data-b=\"1024\">\n                    <td>mujoco</td>\n                    <td>10</td>\n                    <td>1024</td>\n                    <td>12,239.67</td>\n                </tr>\n        \n                <tr data-n=\"50\" data-b=\"1\">\n                    <td>mujoco</td>\n                    <td>50</td>\n                    <td>1</td>\n                    <td>35.53</td>\n                </tr>\n        \n            </tbody>\n        </table>\n    </div>\n    </section>\n    "}, "Intel_R__Core_TM__i5-10600KF_CPU___4_10GHz": {"stats": {"total": 20, "best_per_env_fps": 11942.66, "best_total_fps": 108880.31, "by_engine": {"mujoco": {"count": 10, "avg_per_env_fps": 1432.0479999999998, "avg_total_fps": 25061.652, "best_per_env_fps": 11942.66, "best_total_fps": 108880.31}, "motrix": {"count": 10, "avg_per_env_fps": 1440.391, "avg_total_fps": 13105.42, "best_per_env_fps": 8699.65, "best_total_fps": 44978.53}}, "by_N": {"5": {"count": 6, "avg_per_env_fps": 748.5616666666666, "avg_total_fps": 6446.003333333334}, "10": {"count": 6, "avg_per_env_fps": 431.9866666666666, "avg_total_fps": 2500.1883333333335}, "1": {"count": 6, "avg_per_env_fps": 3515.3566666666666, "avg_total_fps": 54574.10166666666}, "50": {"count": 2, "avg_per_env_fps": 274.48, "avg_total_fps": 274.48}}, "by_B": {"1024": {"count": 6, "avg_per_env_fps": 28.781666666666663, "avg_total_fps": 29471.615}, "1": {"count": 8, "avg_per_env_fps": 3525.83875, "avg_total_fps": 3525.83875}, "512": {"count": 6, "avg_per_env_fps": 57.498333333333335, "avg_total_fps": 29439.053333333333}}}, "chartConfigs": "[\n{\n        id: 'chart-n1',\n        config: {\n            type: 'bar',\n            data: {\n                labels: [\"B=1\", \"B=512\", \"B=1024\"],\n                datasets: [{\"label\": \"Motrix\", \"data\": [8699.65, 44978.53, 44109.96], \"backgroundColor\": \"#3b82f6\"}, {\"label\": \"MuJoCo\", \"data\": [11942.66, 108833.5, 108880.31], \"backgroundColor\": \"#ef4444\"}]\n            },\n            options: {\n                responsive: true,\n                maintainAspectRatio: false,\n                plugins: {\n                    title: {\n                        display: true,\n                        text: 'N=1 Humanoids - Total FPS',\n                        font: { size: 16 }\n                    },\n                    legend: {\n                        position: 'top'\n                    }\n                },\n                scales: {\n                    y: {\n                        beginAtZero: true,\n                        title: {\n                            display: true,\n                            text: 'FPS (total)'\n                        }\n                    }\n                }\n            }\n        }\n    },\n{\n        id: 'chart-n5',\n        config: {\n            type: 'bar',\n            data: {\n                labels: [\"B=1\", \"B=512\", \"B=1024\"],\n                datasets: [{\"label\": \"Motrix\", \"data\": [2906.85, 8887.22, 9290.32], \"backgroundColor\": \"#3b82f6\"}, {\"label\": \"MuJoCo\", \"data\": [1534.84, 7753.7, 8303.09], \"backgroundColor\": \"#ef4444\"}]\n            },\n            options: {\n                responsive: true,\n                maintainAspectRatio: false,\n                plugins: {\n                    title: {\n                        display: true,\n                        text: 'N=5 Humanoids - Total FPS',\n                        font: { size: 16 }\n                    },\n                    legend: {\n                        position: 'top'\n                    }\n                },\n                scales: {\n                    y: {\n                        beginAtZero: true,\n                        title: {\n                            display: true,\n                            text: 'FPS (total)'\n                        }\n                    }\n                }\n            }\n        }\n    },\n{\n        id: 'chart-n10',\n        config: {\n            type: 'bar',\n            data: {\n                labels: [\"B=1\", \"B=512\", \"B=1024\"],\n                datasets: [{\"label\": \"Motrix\", \"data\": [2095.49, 4755.71, 4799.89], \"backgroundColor\": \"#3b82f6\"}, {\"label\": \"MuJoCo\", \"data\": [478.26, 1425.66, 1446.12], \"backgroundColor\": \"#ef4444\"}]\n            },\n            options: {\n                responsive: true,\n                maintainAspectRatio: false,\n                plugins: {\n                    title: {\n                        display: true,\n                        text: 'N=10 Humanoids - Total FPS',\n                        font: { size: 16 }\n                    },\n                    legend: {\n                        position: 'top'\n                    }\n                },\n                scales: {\n                    y: {\n                        beginAtZero: true,\n                        title: {\n                            display: true,\n                            text: 'FPS (total)'\n                        }\n                    }\n                }\n            }\n        }\n    },\n{\n        id: 'chart-n50',\n        config: {\n            type: 'bar',\n            data: {\n                labels: [\"B=1\"],\n                datasets: [{\"label\": \"Motrix\", \"data\": [530.58], \"backgroundColor\": \"#3b82f6\"}, {\"label\": \"MuJoCo\", \"data\": [18.38], \"backgroundColor\": \"#ef4444\"}]\n            },\n            options: {\n                responsive: true,\n                maintainAspectRatio: false,\n                plugins: {\n                    title: {\n                        display: true,\n                        text: 'N=50 Humanoids - Total FPS',\n                        font: { size: 16 }\n                    },\n                    legend: {\n                        position: 'top'\n                    }\n                },\n                scales: {\n                    y: {\n                        beginAtZero: true,\n                        title: {\n                            display: true,\n                            text: 'FPS (total)'\n                        }\n                    }\n                }\n            }\n        }\n    },\n{\n        id: 'chart-b1',\n        config: {\n            type: 'bar',\n            data: {\n                labels: [\"N=1\", \"N=5\", \"N=10\", \"N=50\"],\n                datasets: [{\"label\": \"Motrix\", \"data\": [8699.65, 2906.85, 2095.49, 530.58], \"backgroundColor\": \"#3b82f6\"}, {\"label\": \"MuJoCo\", \"data\": [11942.66, 1534.84, 478.26, 18.38], \"backgroundColor\": \"#ef4444\"}]\n            },\n            options: {\n                responsive: true,\n                maintainAspectRatio: false,\n                plugins: {\n                    title: {\n                        display: true,\n                        text: 'B=1 Batch Size - Total FPS',\n                        font: { size: 16 }\n                    },\n                    legend: {\n                        position: 'top'\n                    }\n                },\n                scales: {\n                    y: {\n                        beginAtZero: true,\n                        title: {\n                            display: true,\n                            text: 'FPS (total)'\n                        }\n                    }\n                }\n            }\n        }\n    },\n{\n        id: 'chart-b512',\n        config: {\n            type: 'bar',\n            data: {\n                labels: [\"N=1\", \"N=5\", \"N=10\"],\n                datasets: [{\"label\": \"Motrix\", \"data\": [44978.53, 8887.22, 4755.71], \"backgroundColor\": \"#3b82f6\"}, {\"label\": \"MuJoCo\", \"data\": [108833.5, 7753.7, 1425.66], \"backgroundColor\": \"#ef4444\"}]\n            },\n            options: {\n                responsive: true,\n                maintainAspectRatio: false,\n                plugins: {\n                    title: {\n                        display: true,\n                        text: 'B=512 Batch Size - Total FPS',\n                        font: { size: 16 }\n                    },\n                    legend: {\n                        position: 'top'\n                    }\n                },\n                scales: {\n                    y: {\n                        beginAtZero: true,\n                        title: {\n                            display: true,\n                            text: 'FPS (total)'\n                        }\n                    }\n                }\n            }\n        }\n    },\n{\n        id: 'chart-b1024',\n        config: {\n            type: 'bar',\n            data: {\n                labels: [\"N=1\", \"N=5\", \"N=10\"],\n                datasets: [{\"label\": \"Motrix\", \"data\": [44109.96, 9290.32, 4799.89], \"backgroundColor\": \"#3b82f6\"}, {\"label\": \"MuJoCo\", \"data\": [108880.31, 8303.09, 1446.12], \"backgroundColor\": \"#ef4444\"}]\n            },\n            options: {\n                responsive: true,\n                maintainAspectRatio: false,\n                plugins: {\n                    title: {\n                        display: true,\n                        text: 'B=1024 Batch Size - Total FPS',\n                        font: { size: 16 }\n                    },\n                    legend: {\n                        position: 'top'\n                    }\n                },\n                scales: {\n                    y: {\n                        beginAtZero: true,\n                        title: {\n                            display: true,\n                            text: 'FPS (total)'\n                        }\n                    }\n                }\n            }\n        }\n    }\n]", "byNHtml": "<section class=\"charts-section\" id=\"by-n\"><h2>Performance by Humanoid Count (N)</h2>\n        <div class=\"chart-container\">\n            <canvas id=\"chart-n1\"></canvas>\n        </div>\n        \n        <div class=\"chart-container\">\n            <canvas id=\"chart-n5\"></canvas>\n        </div>\n        \n        <div class=\"chart-container\">\n            <canvas id=\"chart-n10\"></canvas>\n        </div>\n        \n        <div class=\"chart-container\">\n            <canvas id=\"chart-n50\"></canvas>\n        </div>\n        </section>", "byBHtml": "<section class=\"charts-section\" id=\"by-b\"><h2>Performance by Batch Size (B)</h2>\n        <div class=\"chart-container\">\n            <canvas id=\"chart-b1\"></canvas>\n        </div>\n        \n        <div class=\"chart-container\">\n            <canvas id=\"chart-b512\"></canvas>\n        </div>\n        \n        <div class=\"chart-container\">\n            <canvas id=\"chart-b1024\"></canvas>\n        </div>\n        </section>", "tableHtml": "<section class=\"detailed-table-section\" id=\"detailed\"><h2>Detailed Data</h2>\n    <div class=\"filter-controls\">\n        <label>Filter by N: <select id=\"filter-n\">\n            <option value=\"all\">All</option>\n        </select></label>\n        <label>Filter by B: <select id=\"filter-b\">\n            <option value=\"all\">All</option>\n        </select></label>\n    </div>\n    <div class=\"table-wrapper\">\n        <table class=\"detailed-table\" id=\"detailed-table\">\n            <thead>\n                <tr>\n                    <th>Engine</th>\n                    <th>N (Humanoids)</th>\n                    <th>B (Batch)</th>\n                    <th>Total FPS</th>\n                </tr>\n            </thead>\n            <tbody>\n    \n                <tr data-n=\"1\" data-b=\"1\">\n                    <td>motrix</td>\n                    <td>1</td>\n                    <td>1</td>\n                    <td>8,699.65</td>\n                </tr>\n        \n                <tr data-n=\"1\" data-b=\"512\">\n                    <td>motrix</td>\n                    <td>1</td>\n                    <td>512</td>\n                    <td>44,978.53</td>\n                </tr>\n        \n                <tr data-n=\"1\" data-b=\"1024\">\n                    <td>motrix</td>\n                    <td>1</td>\n                    <td>1024</td>\n                    <td>44,109.96</td>\n                </tr>\n        \n                <tr data-n=\"5\" data-b=\"1\">\n                    <td>motrix</td>\n                    <td>5</td>\n                    <td>1</td>\n                    <td>2,906.85</td>\n                </tr>\n        \n                <tr data-n=\"5\" data-b=\"512\">\n                    <td>motrix</td>\n                    <td>5</td>\n                    <td>512</td>\n                    <td>8,887.22</td>\n                </tr>\n        \n                <tr data-n=\"5\" data-b=\"1024\">\n                    <td>motrix</td>\n                    <td>5</td>\n                    <td>1024</td>\n                    <td>9,290.32</td>\n                </tr>\n        \n                <tr data-n=\"10\" data-b=\"1\">\n                    <td>motrix</td>\n                    <td>10</td>\n                    <td>1</td>\n                    <td>2,095.49</td>\n                </tr>\n        \n                <tr data-n=\"10\" data-b=\"512\">\n                    <td>motrix</td>\n                    <td>10</td>\n                    <td>512</td>\n                    <td>4,755.71</td>\n                </tr>\n        \n                <tr data-n=\"10\" data-b=\"1024\">\n                    <td>motrix</td>\n                    <td>10</td>\n                    <td>1024</td>\n                    <td>4,799.89</td>\n                </tr>\n        \n                <tr data-n=\"50\" data-b=\"1\">\n                    <td>motrix</td>\n                    <td>50</td>\n                    <td>1</td>\n                    <td>530.58</td>\n                </tr>\n        \n                <tr data-n=\"1\" data-b=\"1\">\n                    <td>mujoco</td>\n                    <td>1</td>\n                    <td>1</td>\n                    <td>11,942.66</td>\n                </tr>\n        \n                <tr data-n=\"1\" data-b=\"512\">\n                    <td>mujoco</td>\n                    <td>1</td>\n                    <td>512</td>\n                    <td>108,833.50</td>\n                </tr>\n        \n                <tr data-n=\"1\" data-b=\"1024\">\n                    <td>mujoco</td>\n                    <td>1</td>\n                    <td>1024</td>\n                    <td>108,880.31</td>\n                </tr>\n        \n                <tr data-n=\"5\" data-b=\"1\">\n                    <td>mujoco</td>\n                    <td>5</td>\n                    <td>1</td>\n                    <td>1,534.84</td>\n                </tr>\n        \n                <tr data-n=\"5\" data-b=\"512\">\n                    <td>mujoco</td>\n                    <td>5</td>\n                    <td>512</td>\n                    <td>7,753.70</td>\n                </tr>\n        \n                <tr data-n=\"5\" data-b=\"1024\">\n                    <td>mujoco</td>\n                    <td>5</td>\n                    <td>1024</td>\n                    <td>8,303.09</td>\n                </tr>\n        \n                <tr data-n=\"10\" data-b=\"1\">\n                    <td>mujoco</td>\n                    <td>10</td>\n                    <td>1</td>\n                    <td>478.26</td>\n                </tr>\n        \n                <tr data-n=\"10\" data-b=\"512\">\n                    <td>mujoco</td>\n                    <td>10</td>\n                    <td>512</td>\n                    <td>1,425.66</td>\n                </tr>\n        \n                <tr data-n=\"10\" data-b=\"1024\">\n                    <td>mujoco</td>\n                    <td>10</td>\n                    <td>1024</td>\n                    <td>1,446.12</td>\n                </tr>\n        \n                <tr data-n=\"50\" data-b=\"1\">\n                    <td>mujoco</td>\n                    <td>50</td>\n                    <td>1</td>\n                    <td>18.38</td>\n                </tr>\n        \n            </tbody>\n        </table>\n    </div>\n    </section>\n    "}};
 
-            chartConfigs.forEach(function(chartConfig) {
-                const canvas = document.getElementById(chartConfig.id);
-                if (canvas) {
-                    new Chart(canvas, chartConfig.config);
-                }
-            });
+        // Track current chart instances
+        let currentCharts = [];
+
+        // Initialize first CPU's charts
+        document.addEventListener('DOMContentLoaded', function() {
+            const initialCpu = 'AMD_Ryzen_9_9950X_16-Core_Processor';
+            initializeCharts(initialCpu);
 
             // Setup filter controls for detailed table
+            setupTableFilters();
+        });
+
+        function initializeCharts(cpuDirName) {
+            // Destroy existing charts
+            currentCharts.forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            currentCharts = [];
+
+            const chartConfigs = allCpuData[cpuDirName].chartConfigs;
+            const configs = eval(chartConfigs);
+
+            configs.forEach(function(chartConfig) {
+                const canvas = document.getElementById(chartConfig.id);
+                if (canvas) {
+                    const chart = new Chart(canvas, chartConfig.config);
+                    currentCharts.push(chart);
+                }
+            });
+        }
+
+        function setupTableFilters() {
             const nFilter = document.getElementById('filter-n');
             const bFilter = document.getElementById('filter-b');
 
             if (nFilter && bFilter) {
-                // Get unique N and B values from table
                 const nValues = [...new Set([...document.querySelectorAll('#detailed-table tbody tr')].map(row => row.dataset.n))].sort((a, b) => parseInt(a) - parseInt(b));
                 const bValues = [...new Set([...document.querySelectorAll('#detailed-table tbody tr')].map(row => row.dataset.b))].sort((a, b) => parseInt(a) - parseInt(b));
 
-                // Populate filter dropdowns
                 nValues.forEach(n => {
                     const option = document.createElement('option');
                     option.value = n;
@@ -733,7 +559,6 @@
                     bFilter.appendChild(option);
                 });
 
-                // Filter function
                 function filterTable() {
                     const selectedN = nFilter.value;
                     const selectedB = bFilter.value;
@@ -752,7 +577,36 @@
                 nFilter.addEventListener('change', filterTable);
                 bFilter.addEventListener('change', filterTable);
             }
+        }
+
+        // CPU tab handler
+        document.querySelectorAll('.cpu-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const selectedCpu = tab.dataset.cpu;
+
+                // Update active state
+                document.querySelectorAll('.cpu-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Update report
+                updateReport(selectedCpu);
+            });
         });
+
+        function updateReport(cpuDirName) {
+            const data = allCpuData[cpuDirName];
+
+            // Update main content
+            const mainContent = document.getElementById('main-content');
+            mainContent.innerHTML = '<div id="charts-container">' + data.byNHtml + data.byBHtml + '</div>' +
+                data.tableHtml;
+
+            // Reinitialize charts
+            initializeCharts(cpuDirName);
+
+            // Reset up table filters
+            setupTableFilters();
+        }
 
         // Navigation tabs
         document.querySelectorAll('.nav-tab').forEach(tab => {

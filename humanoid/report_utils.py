@@ -48,6 +48,40 @@ def detect_cpu_model_dir(results_dir: Path) -> Optional[str]:
     return subdirs[0].name
 
 
+def detect_all_cpu_model_dirs(results_dir: Path) -> List[str]:
+    """Find all CPU model subdirectories.
+
+    Args:
+        results_dir: Base directory containing CPU model subdirectories
+
+    Returns:
+        List of CPU model directory names, sorted by modification time (most recent first)
+    """
+    if not results_dir.exists():
+        return []
+
+    # Find all subdirectories
+    subdirs = [d for d in results_dir.iterdir() if d.is_dir()]
+
+    # Sort by modification time (most recent first)
+    subdirs.sort(key=lambda d: d.stat().st_mtime, reverse=True)
+    return [d.name for d in subdirs]
+
+
+def format_cpu_name(cpu_dir_name: str) -> str:
+    """Convert CPU directory name to friendly display name.
+
+    Args:
+        cpu_dir_name: CPU directory name (e.g., "Intel_R__Core_TM__i5-10600KF_CPU___4_10GHz")
+
+    Returns:
+        Formatted CPU name (e.g., "Intel R Core TM i5-10600KF CPU 4 10GHz")
+    """
+    # Replace underscores with spaces and clean up excess whitespace
+    formatted = cpu_dir_name.replace('_', ' ').replace('  ', ' ').strip()
+    return formatted
+
+
 def parse_result_filename(filename: str) -> Optional[Dict[str, any]]:
     """Extract engine, N, B from filename.
 
@@ -115,6 +149,53 @@ def load_json_results(results_dir: Path, cpu_model: Optional[str] = None) -> Lis
         })
 
     return results
+
+
+def load_all_cpu_results(results_dir: Path) -> Dict[str, List[Dict]]:
+    """Load all JSON benchmark results from all CPU model directories.
+
+    Args:
+        results_dir: Base directory containing CPU model subdirectories
+
+    Returns:
+        Dict mapping CPU model directory names to lists of result dicts
+        Example: {"Intel_i5": [...], "AMD_Ryzen": [...]}
+    """
+    cpu_dirs = detect_all_cpu_model_dirs(results_dir)
+
+    all_results = {}
+    for cpu_dir_name in cpu_dirs:
+        cpu_data_dir = results_dir / cpu_dir_name
+        if not cpu_data_dir.exists():
+            continue
+
+        results = []
+        for json_file in cpu_data_dir.glob("*.json"):
+            parsed = parse_result_filename(json_file.name)
+            if not parsed:
+                continue
+
+            try:
+                with open(json_file, "r") as f:
+                    data = json.load(f)
+
+                # Merge parsed filename data with JSON content
+                results.append({
+                    **parsed,
+                    "T": data.get("T", 1),
+                    "per_env_fps": data.get("per_env_fps", 0.0),
+                    "total_fps": data.get("total_fps", 0.0),
+                    "timestamp": data.get("timestamp", ""),
+                })
+            except (json.JSONDecodeError, IOError) as e:
+                # Skip corrupted files and continue
+                print(f"Warning: Skipping corrupted file {json_file}: {e}")
+                continue
+
+        if results:
+            all_results[cpu_dir_name] = results
+
+    return all_results
 
 
 def group_by_dimensions(results: List[Dict]) -> Dict[str, Dict[int, Dict[int, Dict]]]:
@@ -584,6 +665,37 @@ def _get_css_styles() -> str:
             margin-top: 0.25rem;
         }
 
+        /* CPU Tabs */
+        .cpu-tabs {
+            background: var(--card-bg);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            position: sticky;
+            top: 72px;
+            z-index: 100;
+        }
+        .cpu-tab {
+            padding: 0.5rem 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: var(--bg);
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .cpu-tab:hover {
+            background: #e2e8f0;
+        }
+        .cpu-tab.active {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
         /* Navigation */
         nav {
             background: var(--card-bg);
@@ -593,7 +705,7 @@ def _get_css_styles() -> str:
             gap: 0.5rem;
             overflow-x: auto;
             position: sticky;
-            top: 72px;
+            top: 130px;
             z-index: 99;
         }
         .nav-tab {
@@ -938,6 +1050,264 @@ def _get_html_template(title: str, cpu_model: str, results: List[Dict],
 </html>"""
 
 
+def _get_html_template_multi_cpu(title: str, all_cpu_data: Dict[str, Dict]) -> str:
+    """Generate complete HTML document with multi-CPU support.
+
+    Args:
+        title: Report title
+        all_cpu_data: Dict mapping CPU dir names to their data:
+            {
+                "cpu_dir_name": {
+                    "results": [...],
+                    "grouped": {...},
+                    "stats": {...}
+                }
+            }
+
+    Returns:
+        Complete HTML document as string
+    """
+    if not all_cpu_data:
+        # No data - return empty report
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    {_get_css_styles()}
+</head>
+<body>
+    <header>
+        <h1>{title}</h1>
+        <div class="subtitle">Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</div>
+    </header>
+    <main>
+        <section>
+            <h2>No Data Available</h2>
+            <p>No benchmark results found. Please run benchmarks first.</p>
+        </section>
+    </main>
+</body>
+</html>"""
+
+    # Get the first CPU (most recent) for initial display
+    first_cpu = list(all_cpu_data.keys())[0]
+
+    # Generate CPU tabs HTML
+    cpu_tabs_html = "        <div class=\"cpu-tabs\">\n"
+    for i, cpu_dir_name in enumerate(all_cpu_data.keys()):
+        formatted_name = format_cpu_name(cpu_dir_name)
+        is_active = "active" if i == 0 else ""
+        cpu_tabs_html += f"            <button class=\"cpu-tab {is_active}\" data-cpu=\"{cpu_dir_name}\">{formatted_name}</button>\n"
+    cpu_tabs_html += "        </div>\n"
+
+    # Build JavaScript data structure for all CPUs
+    all_cpu_data_js = {}
+    for cpu_dir_name, data in all_cpu_data.items():
+        # Generate chart configs for this CPU
+        chart_configs = []
+        by_n_html = _get_by_n_charts_html(data["grouped"], chart_configs)
+        by_b_html = _get_by_b_charts_html(data["grouped"], chart_configs)
+        overview_html = ""
+        table_html = _get_detailed_table_html(data["results"])
+
+        chart_configs_js = "[\n" + ",\n".join(chart_configs) + "\n]"
+
+        all_cpu_data_js[cpu_dir_name] = {
+            "stats": data["stats"],
+            "chartConfigs": chart_configs_js,
+            "byNHtml": by_n_html,
+            "byBHtml": by_b_html,
+            "tableHtml": table_html,
+        }
+
+    # Convert to JavaScript
+    all_cpu_data_js_json = json.dumps(all_cpu_data_js, ensure_ascii=False)
+
+    # Get initial HTML sections
+    initial_data = all_cpu_data_js[first_cpu]
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    {_get_chartjs_inline()}
+    {_get_css_styles()}
+</head>
+<body>
+    <header>
+        <h1>{title}</h1>
+        <div class="subtitle">Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</div>
+    </header>
+
+    {cpu_tabs_html}
+
+    <nav>
+        <button class="nav-tab active" data-target="by-n">By Humanoid Count</button>
+        <button class="nav-tab" data-target="by-b">By Batch Size</button>
+        <button class="nav-tab" data-target="detailed">Detailed Data</button>
+    </nav>
+
+    <main id="main-content">
+        <div id="charts-container">
+            {initial_data['byNHtml']}
+            {initial_data['byBHtml']}
+        </div>
+        {initial_data['tableHtml']}
+    </main>
+
+    <script>
+        // All CPU data
+        const allCpuData = {all_cpu_data_js_json};
+
+        // Track current chart instances
+        let currentCharts = [];
+
+        // Initialize first CPU's charts
+        document.addEventListener('DOMContentLoaded', function() {{
+            const initialCpu = '{first_cpu}';
+            initializeCharts(initialCpu);
+
+            // Setup filter controls for detailed table
+            setupTableFilters();
+        }});
+
+        function initializeCharts(cpuDirName) {{
+            // Destroy existing charts
+            currentCharts.forEach(chart => {{
+                if (chart) chart.destroy();
+            }});
+            currentCharts = [];
+
+            const chartConfigs = allCpuData[cpuDirName].chartConfigs;
+            const configs = eval(chartConfigs);
+
+            configs.forEach(function(chartConfig) {{
+                const canvas = document.getElementById(chartConfig.id);
+                if (canvas) {{
+                    const chart = new Chart(canvas, chartConfig.config);
+                    currentCharts.push(chart);
+                }}
+            }});
+        }}
+
+        function setupTableFilters() {{
+            const nFilter = document.getElementById('filter-n');
+            const bFilter = document.getElementById('filter-b');
+
+            if (nFilter && bFilter) {{
+                const nValues = [...new Set([...document.querySelectorAll('#detailed-table tbody tr')].map(row => row.dataset.n))].sort((a, b) => parseInt(a) - parseInt(b));
+                const bValues = [...new Set([...document.querySelectorAll('#detailed-table tbody tr')].map(row => row.dataset.b))].sort((a, b) => parseInt(a) - parseInt(b));
+
+                nValues.forEach(n => {{
+                    const option = document.createElement('option');
+                    option.value = n;
+                    option.textContent = n;
+                    nFilter.appendChild(option);
+                }});
+
+                bValues.forEach(b => {{
+                    const option = document.createElement('option');
+                    option.value = b;
+                    option.textContent = b;
+                    bFilter.appendChild(option);
+                }});
+
+                function filterTable() {{
+                    const selectedN = nFilter.value;
+                    const selectedB = bFilter.value;
+
+                    document.querySelectorAll('#detailed-table tbody tr').forEach(row => {{
+                        const rowN = row.dataset.n;
+                        const rowB = row.dataset.b;
+
+                        const showN = selectedN === 'all' || rowN === selectedN;
+                        const showB = selectedB === 'all' || rowB === selectedB;
+
+                        row.style.display = (showN && showB) ? '' : 'none';
+                    }});
+                }}
+
+                nFilter.addEventListener('change', filterTable);
+                bFilter.addEventListener('change', filterTable);
+            }}
+        }}
+
+        // CPU tab handler
+        document.querySelectorAll('.cpu-tab').forEach(tab => {{
+            tab.addEventListener('click', () => {{
+                const selectedCpu = tab.dataset.cpu;
+
+                // Update active state
+                document.querySelectorAll('.cpu-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Update report
+                updateReport(selectedCpu);
+            }});
+        }});
+
+        function updateReport(cpuDirName) {{
+            const data = allCpuData[cpuDirName];
+
+            // Update main content
+            const mainContent = document.getElementById('main-content');
+            mainContent.innerHTML = '<div id="charts-container">' + data.byNHtml + data.byBHtml + '</div>' +
+                data.tableHtml;
+
+            // Reinitialize charts
+            initializeCharts(cpuDirName);
+
+            // Reset up table filters
+            setupTableFilters();
+        }}
+
+        // Navigation tabs
+        document.querySelectorAll('.nav-tab').forEach(tab => {{
+            tab.addEventListener('click', () => {{
+                const target = tab.dataset.target;
+                const targetSection = document.getElementById(target) || document.querySelector('section');
+
+                if (targetSection) {{
+                    targetSection.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+
+                    // Update active state
+                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                }}
+            }});
+        }});
+
+        // Update active tab on scroll
+        const observerOptions = {{
+            root: null,
+            rootMargin: '-20% 0px -60% 0px',
+            threshold: 0
+        }};
+
+        const observer = new IntersectionObserver((entries) => {{
+            entries.forEach(entry => {{
+                if (entry.isIntersecting) {{
+                    const sectionId = entry.target.id;
+                    document.querySelectorAll('.nav-tab').forEach(tab => {{
+                        tab.classList.toggle('active', tab.dataset.target === sectionId);
+                    }});
+                }}
+            }});
+        }}, observerOptions);
+
+        // Observe all sections
+        document.querySelectorAll('section').forEach(section => {{
+            observer.observe(section);
+        }});
+    </script>
+</body>
+</html>"""
+
+
 def generate_html_report(
     output_path: str = "output/humanoid/comparison_report.html",
     results_dir: Path = None,
@@ -949,30 +1319,34 @@ def generate_html_report(
     Args:
         output_path: Path where HTML file will be saved
         results_dir: Directory containing JSON results (defaults to "output/humanoid")
-        cpu_model: Specific CPU model subdirectory (auto-detected if None)
+        cpu_model: Specific CPU model subdirectory (auto-detected if None) - deprecated,
+                   now loads all CPU models automatically
         title: Title for the HTML page
     """
     if results_dir is None:
         results_dir = Path("output/humanoid")
 
-    # Load results
-    results = load_json_results(results_dir, cpu_model)
+    # Load all CPU results
+    all_cpu_results = load_all_cpu_results(results_dir)
 
-    if not results:
+    if not all_cpu_results:
         print(f"Warning: No benchmark results found in {results_dir}")
         # Still generate the report with empty data
+        all_cpu_results = {}
 
-    # Detect CPU model if not specified
-    if cpu_model is None:
-        detected = detect_cpu_model_dir(results_dir)
-        cpu_model = detected or "Unknown"
-
-    # Group data and calculate statistics
-    grouped = group_by_dimensions(results)
-    stats = calculate_statistics(results)
+    # Prepare data for all CPUs
+    all_cpu_data = {}
+    for cpu_dir_name, results in all_cpu_results.items():
+        grouped = group_by_dimensions(results)
+        stats = calculate_statistics(results)
+        all_cpu_data[cpu_dir_name] = {
+            "results": results,
+            "grouped": grouped,
+            "stats": stats,
+        }
 
     # Generate HTML
-    html = _get_html_template(title, cpu_model, results, grouped, stats)
+    html = _get_html_template_multi_cpu(title, all_cpu_data)
 
     # Save to file
     output_file = Path(output_path)
@@ -980,8 +1354,7 @@ def generate_html_report(
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(html)
 
+    total_results = sum(len(data["results"]) for data in all_cpu_data.values())
     print(f"Report generated: {output_path}")
-    print(f"  - {len(results)} benchmark results loaded")
-    if results:
-        print(f"  - Best per-env FPS: {stats['best_per_env_fps']:,.0f}")
-        print(f"  - Best total FPS: {stats['best_total_fps']:,.0f}")
+    print(f"  - {len(all_cpu_data)} CPU models loaded")
+    print(f"  - {total_results} total benchmark results loaded")
