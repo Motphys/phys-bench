@@ -1,0 +1,17 @@
+[project]
+name = "phys-bench-motrixsim-warp"
+version = "0.1.0"
+description = "Motrixsim-warp benchmarking environment for phys-bench"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "warp-lang==1.11.0",
+    "motrixsim-warp===0.1.0a0.post0.dev88137",
+]
+
+[tool.uv.sources]
+motrixsim-warp = { index = "motrixsim_warp_priv" }
+
+[[tool.uv.index]]
+name = "motrixsim_warp_priv"
+url = "https://pypi.motphys.com/simple"
