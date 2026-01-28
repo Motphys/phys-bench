@@ -12,6 +12,7 @@ parser.add_argument("-v", action="store_true", default=False, help="Enable visua
 parser.add_argument("--mode", type=str, default="random", choices=["random", "grasp"], help="Scenario: random or grasp")
 parser.add_argument("--object", type=str, default="ball", choices=["ball", "cube", "bottle"], help="Object for grasp mode")
 parser.add_argument("-r", action="store_true", default=False, help="Random noise during grasp benchmark phase")
+parser.add_argument("--clutter", action="store_true", default=False, help="Fill scene with 200+ dynamic bottles (random mode only)")
 
 args = parser.parse_args()
 
@@ -44,6 +45,32 @@ def get_robot_positions(n_robots):
             rotations.append((0, 0, 0))
 
     return positions, rotations
+
+
+def generate_clutter_positions(robot_pos, min_radius=0.3, spacing=0.15, min_count=40):
+    """Generate positions for bottles in concentric circles around robot_pos.
+
+    Note: scene_bottle.xml has bottle at pos="0.65 0 0.036" relative to worldbody,
+    so we subtract 0.65 from x to compensate.
+    """
+    positions = []
+    radius = min_radius
+    z_offset = 0.036
+    while len(positions) < min_count:
+        circumference = 2 * np.pi * radius
+        n_bottles = int(circumference / spacing)
+        if n_bottles == 0:
+            n_bottles = 1
+        for j in range(n_bottles):
+            if len(positions) >= min_count:
+                break
+            angle = 2 * np.pi * j / n_bottles
+            x = robot_pos[0] + radius * np.cos(angle) - 0.65
+            y = robot_pos[1] + radius * np.sin(angle)
+            positions.append((x, y, z_offset))
+        radius += spacing
+        z_offset += 0.1  # Stack bottles vertically as we add more rings
+    return positions
 
 
 # Object configurations for grasp mode
@@ -105,7 +132,20 @@ for i in range(args.N):
     )
     frankas.append(franka)
 
-    # Add objects for grasp mode
+# Add clutter bottles for random mode
+if args.mode == "random" and args.clutter:
+    for i in range(args.N):
+        clutter_positions = generate_clutter_positions(positions[i])
+        for clutter_pos in clutter_positions:
+            scene.add_entity(
+                gs.morphs.MJCF(
+                    file="assets/objects/scene_bottle.xml",
+                    pos=clutter_pos,
+                ),
+            )
+
+# Add objects for grasp mode
+for i in range(args.N):
     if args.mode == "grasp":
         obj_x = positions[i][0] + 0.65
         obj_y = positions[i][1]

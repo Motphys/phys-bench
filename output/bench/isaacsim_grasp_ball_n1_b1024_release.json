@@ -1,0 +1,14 @@
+{
+  "simulator": "isaacsim",
+  "simulator_name": "IsaacSim",
+  "mode": "grasp",
+  "n_robots": 1,
+  "batch_size": 1024,
+  "per_env_fps": null,
+  "total_fps": null,
+  "object": "ball",
+  "clutter": false,
+  "release": true,
+  "status": "failed",
+  "timestamp": "2026-01-28T18:35:41.699756"
+}

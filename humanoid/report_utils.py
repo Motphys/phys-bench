@@ -365,10 +365,17 @@ def _get_chart_config(chart_id: str, title: str, labels: List[str],
                 }},
                 scales: {{
                     y: {{
+                        type: 'linear',
                         beginAtZero: true,
                         title: {{
                             display: true,
                             text: '{y_label}'
+                        }}
+                    }},
+                    x: {{
+                        title: {{
+                            display: true,
+                            text: 'Engine'
                         }}
                     }}
                 }}

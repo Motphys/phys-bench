@@ -1,0 +1,14 @@
+{
+  "simulator": "mujocowarp",
+  "simulator_name": "MuJoCo-Warp",
+  "mode": "random",
+  "n_robots": 5,
+  "batch_size": 512,
+  "per_env_fps": 178.85,
+  "total_fps": 91568.78,
+  "object": null,
+  "clutter": false,
+  "release": false,
+  "status": "success",
+  "timestamp": "2026-01-28T16:50:25.045714"
+}

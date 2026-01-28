@@ -7,12 +7,41 @@ import numpy as np
 from motrixsim import run
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-N", type=int, default=1, choices=[1, 5, 10], help="Number of robots")
-parser.add_argument("-B", type=int, default=1, help="Batch size / parallel environments")
-parser.add_argument("-v", action="store_true", default=False, help="Enable visualization")
-parser.add_argument("--mode", type=str, default="random", choices=["random", "grasp"], help="Scenario: random or grasp")
-parser.add_argument("--object", type=str, default="ball", choices=["ball", "cube", "bottle"], help="Object for grasp mode")
-parser.add_argument("-r", action="store_true", default=False, help="Random noise during grasp benchmark phase")
+parser.add_argument(
+    "-N", type=int, default=1, choices=[1, 5, 10], help="Number of robots"
+)
+parser.add_argument(
+    "-B", type=int, default=1, help="Batch size / parallel environments"
+)
+parser.add_argument(
+    "-v", action="store_true", default=False, help="Enable visualization"
+)
+parser.add_argument(
+    "--mode",
+    type=str,
+    default="random",
+    choices=["random", "grasp"],
+    help="Scenario: random or grasp",
+)
+parser.add_argument(
+    "--object",
+    type=str,
+    default="ball",
+    choices=["ball", "cube", "bottle"],
+    help="Object for grasp mode",
+)
+parser.add_argument(
+    "-r",
+    action="store_true",
+    default=False,
+    help="Random noise during grasp benchmark phase",
+)
+parser.add_argument(
+    "--clutter",
+    action="store_true",
+    default=False,
+    help="Fill scene with 200+ dynamic bottles (random mode only)",
+)
 
 args = parser.parse_args()
 
@@ -42,18 +71,50 @@ def get_robot_positions(n_robots):
     return positions, rotations
 
 
+def generate_clutter_positions(robot_pos, min_radius=0.3, spacing=0.15, min_count=40):
+    """Generate positions for bottles in concentric circles around robot_pos.
+
+    Note: scene_bottle.xml has bottle at pos="0.65 0 0.036" relative to worldbody,
+    so we subtract 0.65 from x to compensate.
+    """
+    positions = []
+    radius = min_radius
+    z_offset = 0
+    while len(positions) < min_count:
+        circumference = 2 * np.pi * radius
+        n_bottles = int(circumference / spacing)
+        if n_bottles == 0:
+            n_bottles = 1
+        for j in range(n_bottles):
+            if len(positions) >= min_count:
+                break
+            angle = 2 * np.pi * j / n_bottles
+            x = robot_pos[0] + radius * np.cos(angle) - 0.65
+            y = robot_pos[1] + radius * np.sin(angle)
+            positions.append((x, y, z_offset))
+        radius += spacing
+        z_offset += 0.1  # Stack bottles vertically as we add more rings
+    return positions
+
+
 # Object configurations for grasp mode
 OBJECT_CONFIGS = {
     "ball": {
-        "grasp_qpos": np.array([-1.0323, 1.7628, 1.4904, -1.6749, -1.7715, 1.6293, 1.4417, 0.04, 0.04]),
+        "grasp_qpos": np.array(
+            [-1.0323, 1.7628, 1.4904, -1.6749, -1.7715, 1.6293, 1.4417, 0.04, 0.04]
+        ),
         "lift_steps": 100,
     },
     "cube": {
-        "grasp_qpos": np.array([-1.0104, 1.5623, 1.3601, -1.6840, -1.5863, 1.7810, 1.4598, 0.04, 0.04]),
+        "grasp_qpos": np.array(
+            [-1.0104, 1.5623, 1.3601, -1.6840, -1.5863, 1.7810, 1.4598, 0.04, 0.04]
+        ),
         "lift_steps": 50,
     },
     "bottle": {
-        "grasp_qpos": np.array([-0.9937, 1.4588, 1.3058, -1.6924, -1.4882, 1.8461, 1.4577, 0.04, 0.04]),
+        "grasp_qpos": np.array(
+            [-0.9937, 1.4588, 1.3058, -1.6924, -1.4882, 1.8461, 1.4577, 0.04, 0.04]
+        ),
         "lift_steps": 50,
     },
 }
@@ -67,7 +128,9 @@ if args.mode == "random":
     scene = mx.msd.from_file(scene_path)
 
     robot_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "../assets/franka_emika_panda/panda.xml")
+        os.path.join(
+            os.path.dirname(__file__), "../assets/franka_emika_panda/panda.xml"
+        )
     )
     robot = mx.msd.from_file(robot_path)
 
@@ -80,26 +143,40 @@ if args.mode == "random":
             other_rotation=rotations[i],
         )
 
+    # Add clutter bottles if requested
+    if args.clutter:
+        bottle_path = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__), "../assets/objects/scene_bottle.xml"
+            )
+        )
+        bottle_counter = 0
+        for i in range(args.N):
+            clutter_positions = generate_clutter_positions(positions[i])
+            for clutter_pos in clutter_positions:
+                bottle = mx.msd.from_file(bottle_path)
+                scene.attach(
+                    bottle,
+                    other_prefix=f"clutter{bottle_counter}_",
+                    other_translation=clutter_pos,
+                    other_rotation=(0, 0, 0, 1),
+                )
+                bottle_counter += 1
+
     model = scene.build()
     model.options.timestep = 0.01
 
-elif args.mode == "grasp" and args.N == 1:
-    # Grasp mode with N=1: load pre-made grasp scene
-    model_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), f"../assets/grasp/pick_{args.object}.xml")
-    )
-    model = mx.load_model(model_path)
-    model.options.timestep = 0.01
-
 else:
-    # Grasp mode with N>1: compose scene programmatically
+    # Grasp mode: compose scene programmatically for all N
     scene_path = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "xml/base_scene.xml")
     )
     scene = mx.msd.from_file(scene_path)
 
     robot_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "../assets/franka_emika_panda/panda.xml")
+        os.path.join(
+            os.path.dirname(__file__), "../assets/franka_emika_panda/panda.xml"
+        )
     )
 
     positions, rotations = get_robot_positions(args.N)
@@ -112,36 +189,48 @@ else:
             other_translation=positions[i],
             other_rotation=rotations[i],
         )
-
         # Attach object for each robot
-        obj_x = positions[i][0] + 0.65
-        obj_y = positions[i][1]
-        obj_z = 0.02
-
+        # Note: all scene_*.xml files have objects at pos="0.65 0 z" relative to worldbody,
+        # so we only need to set the base position to the robot's position (no +0.65 here)
         if args.object == "ball":
-            # Create sphere body programmatically
-            body = mx.msd.Body(f"object{i}")
-            body.translation = (obj_x, obj_y, obj_z)
-            geom = mx.msd.Geom(shape=mx.msd.Sphere(radius=0.02))
-            body.geoms.append(geom)
-            scene.bodies.append(body)
+            ball_path = os.path.abspath(
+                os.path.join(
+                    os.path.dirname(__file__), "../assets/objects/scene_ball.xml"
+                )
+            )
+            ball = mx.msd.from_file(ball_path)
+            scene.attach(
+                ball,
+                other_prefix=f"ball{i}_",
+                other_translation=(positions[i][0], positions[i][1], 0),
+                other_rotation=(0, 0, 0, 1),
+            )
         elif args.object == "cube":
-            # Create box body programmatically
-            body = mx.msd.Body(f"object{i}")
-            body.translation = (obj_x, obj_y, obj_z)
-            geom = mx.msd.Geom(shape=mx.msd.Box(size=(0.02, 0.02, 0.02)))
-            body.geoms.append(geom)
-            scene.bodies.append(body)
+            cube_path = os.path.abspath(
+                os.path.join(
+                    os.path.dirname(__file__), "../assets/objects/scene_cube.xml"
+                )
+            )
+            cube = mx.msd.from_file(cube_path)
+            scene.attach(
+                cube,
+                other_prefix=f"cube{i}_",
+                other_translation=(positions[i][0], positions[i][1], 0),
+                other_rotation=(0, 0, 0, 1),
+            )
         elif args.object == "bottle":
-            # For bottle, we need to load and attach the bottle model
+            # Note: scene_bottle.xml already has bottle at relative pos (0.65, 0, 0.036)
+            # So we only need to set the base position to the robot's position
             bottle_path = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "../assets/objects/scene_bottle.xml")
+                os.path.join(
+                    os.path.dirname(__file__), "../assets/objects/scene_bottle.xml"
+                )
             )
             bottle = mx.msd.from_file(bottle_path)
             scene.attach(
                 bottle,
                 other_prefix=f"bottle{i}_",
-                other_translation=(obj_x, obj_y, 0),
+                other_translation=(positions[i][0], positions[i][1], 0),
                 other_rotation=(0, 0, 0, 1),
             )
 
@@ -221,7 +310,9 @@ if args.mode == "random":
                 for robot_idx in range(n_robots):
                     offset = robot_idx * actuators_per_robot
                     if n_envs > 1:
-                        noise = np.random.uniform(-0.2, 0.2, (n_envs, 7)).astype(np.float32)
+                        noise = np.random.uniform(-0.2, 0.2, (n_envs, 7)).astype(
+                            np.float32
+                        )
                         ctrl[:, offset : offset + 7] = ref_pos + noise
                         ctrl[:, offset + 7] = warmup_qpos[7]
                     else:
@@ -236,7 +327,9 @@ if args.mode == "random":
                 t_end[0] = time.perf_counter()
                 benchmark_complete[0] = True
                 print(f"per env: {benchmark_steps / (t_end[0] - t_start[0]):,.2f} FPS")
-                print(f"total  : {benchmark_steps / (t_end[0] - t_start[0]) * n_envs:,.2f} FPS")
+                print(
+                    f"total  : {benchmark_steps / (t_end[0] - t_start[0]) * n_envs:,.2f} FPS"
+                )
 
         def render_func():
             render.sync(data)
@@ -271,28 +364,19 @@ else:  # grasp mode
     config = OBJECT_CONFIGS[args.object]
     grasp_qpos = config["grasp_qpos"]
     lift_steps = config["lift_steps"]
-    lift_qpos = np.array([-1.0426, 1.4028, 1.5634, -1.7114, -1.4055, 1.6015, 1.4510, 0.0, 0.0])
+    lift_qpos = np.array(
+        [-1.0426, 1.4028, 1.5634, -1.7114, -1.4055, 1.6015, 1.4510, 0.0, 0.0]
+    )
 
     # Initialize robot positions for grasp mode
-    if args.N == 1:
-        # Single robot: use standard initialization
-        panda_index = model.get_body_index("link0")
+    for robot_idx in range(args.N):
+        panda_index = model.get_body_index(f"robot{robot_idx}_link0")
         panda = model.get_body(panda_index)
         if n_envs > 1:
             init_pos = np.tile(grasp_qpos, (n_envs, 1))
             panda.set_dof_pos(data, init_pos)
         else:
             panda.set_dof_pos(data, grasp_qpos)
-    else:
-        # Multiple robots: initialize each separately
-        for robot_idx in range(args.N):
-            panda_index = model.get_body_index(f"robot{robot_idx}_link0")
-            panda = model.get_body(panda_index)
-            if n_envs > 1:
-                init_pos = np.tile(grasp_qpos, (n_envs, 1))
-                panda.set_dof_pos(data, init_pos)
-            else:
-                panda.set_dof_pos(data, grasp_qpos)
 
     def make_ctrl(joint_qpos, gripper_val, n_envs, n_robots):
         """Create actuator control array for multiple robots"""
@@ -343,7 +427,9 @@ else:  # grasp mode
             if i < benchmark_steps:
                 if args.r and i % 2 == 0:
                     if n_envs > 1:
-                        noise = np.random.uniform(-0.025, 0.025, (n_envs, 7)).astype(np.float32)
+                        noise = np.random.uniform(-0.025, 0.025, (n_envs, 7)).astype(
+                            np.float32
+                        )
                         ctrl = ref_ctrl.copy()
                         for robot_idx in range(n_robots):
                             offset = robot_idx * 8
@@ -356,12 +442,15 @@ else:  # grasp mode
                             ctrl[offset : offset + 7] = ref_pos + noise
                     data.actuator_ctrls = ctrl
                 model.step(data)
+                render.sync(data)
                 step_counter[0] += 1
             else:
                 t_end[0] = time.perf_counter()
                 benchmark_complete[0] = True
                 print(f"per env: {benchmark_steps / (t_end[0] - t_start[0]):,.2f} FPS")
-                print(f"total  : {benchmark_steps / (t_end[0] - t_start[0]) * n_envs:,.2f} FPS")
+                print(
+                    f"total  : {benchmark_steps / (t_end[0] - t_start[0]) * n_envs:,.2f} FPS"
+                )
 
         def render_func():
             render.sync(data)
@@ -372,7 +461,9 @@ else:  # grasp mode
         for i in range(benchmark_steps):
             if args.r and i % 2 == 0:
                 if n_envs > 1:
-                    noise = np.random.uniform(-0.025, 0.025, (n_envs, 7)).astype(np.float32)
+                    noise = np.random.uniform(-0.025, 0.025, (n_envs, 7)).astype(
+                        np.float32
+                    )
                     ctrl = ref_ctrl.copy()
                     for robot_idx in range(n_robots):
                         offset = robot_idx * 8

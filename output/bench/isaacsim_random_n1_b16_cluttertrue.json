@@ -1,0 +1,14 @@
+{
+  "simulator": "isaacsim",
+  "simulator_name": "IsaacSim",
+  "mode": "random",
+  "n_robots": 1,
+  "batch_size": 16,
+  "per_env_fps": 48.8,
+  "total_fps": 780.78,
+  "object": null,
+  "clutter": true,
+  "release": false,
+  "status": "success",
+  "timestamp": "2026-01-28T15:43:46.353476"
+}
