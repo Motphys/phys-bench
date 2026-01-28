@@ -17,6 +17,8 @@
 
 2. 当场景复杂度增加时（单环境的Humanoid数量从1到10），MuJoCo的性能快速下降，而MotrixSim的性能下降较为平缓。这表明MotrixSim在处理复杂场景时具有更好的扩展性。尤其是在单环境下仿真50个Humanoid时，MotrixSim可以跑到500+fps，而MuJoCo只有17FPS左右。 这是因为MotrixSim即使在单环境下仿真也能使用多线程加速。
 
+3. Genesis跑在GPU上，单场景只有一个Humanoid时，性能表现优秀，随着num_envs增加并行度也能上来。 但是当一个场景有5个Humanoid时，会变得非常卡顿，增加num_envs会出OOM错误。这表明Genesis目前在处理复杂场景时能力优先。
+
 # Run bench on local
 
 ```

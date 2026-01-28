@@ -1,0 +1,12 @@
+{
+  "engine": "genesis",
+  "N": 5,
+  "B": 512,
+  "T": 1,
+  "per_env_fps": 0.0,
+  "total_fps": 0.0,
+  "timestamp": "2026-01-29T00:19:48.020041",
+  "status": "error",
+  "error_code": "CUDA_OOM",
+  "error_message": "CUDA out of memory"
+}

@@ -1,5 +1,7 @@
 import argparse
+import json
 import os
+import sys
 import time
 
 import motrixsim as mx
@@ -68,7 +70,7 @@ sim_dt = model.options.timestep
 ########################## warmup phase ##########################
 print(f"Warmup: {args.N} humanoids to standing position ({args.warmup} steps)...")
 
-# warm up
+# Simple warmup (no timeout check)
 for i in range(args.warmup):
     model.step(data)
 
@@ -86,12 +88,41 @@ if args.v:
             render.sync(data)
             t -= 0.16
 else:
-    t0 = time.perf_counter()
-    for i in range(benchmark_steps):
-        model.step(data)
-    t1 = time.perf_counter()
-    print(f"per env: {benchmark_steps / (t1 - t0):,.2f} FPS")
-    print(f"total  : {benchmark_steps / (t1 - t0) * n_envs:,.2f} FPS")
+    try:
+        t0 = time.perf_counter()
+        for i in range(benchmark_steps):
+            model.step(data)
+            elapsed = time.perf_counter() - t0
+            # Timeout check: if cumulative time exceeds i * 2 seconds
+            if elapsed > (i + 1) * 2.0:
+                error_data = {
+                    "status": "error",
+                    "error_code": "TIMEOUT",
+                    "error_message": f"Timeout at step {i+1}: {elapsed:.2f}s > {(i+1)*2.0:.2f}s",
+                    "per_env_fps": 0.0,
+                    "total_fps": 0.0
+                }
+                print(json.dumps(error_data))
+                sys.exit(1)
+        t1 = time.perf_counter()
+
+        success_data = {
+            "status": "success",
+            "per_env_fps": benchmark_steps / (t1 - t0),
+            "total_fps": benchmark_steps / (t1 - t0) * n_envs
+        }
+        print(f"per env: {success_data['per_env_fps']:,.2f} FPS")
+        print(f"total  : {success_data['total_fps']:,.2f} FPS")
+    except Exception as e:
+        error_data = {
+            "status": "error",
+            "error_code": "BENCHMARK_ERROR",
+            "error_message": f"{type(e).__name__}: {str(e)}",
+            "per_env_fps": 0.0,
+            "total_fps": 0.0
+        }
+        print(json.dumps(error_data))
+        sys.exit(1)
 
 # Cleanup render
 if render:

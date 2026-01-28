@@ -1,0 +1,12 @@
+{
+  "engine": "genesis",
+  "N": 10,
+  "B": 1024,
+  "T": 1,
+  "per_env_fps": 0.0,
+  "total_fps": 0.0,
+  "timestamp": "2026-01-29T00:20:38.063036",
+  "status": "error",
+  "error_code": "JACOBIAN_ERROR",
+  "error_message": "Jacobian shape too large for this configuration"
+}
