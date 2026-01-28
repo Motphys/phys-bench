@@ -1,0 +1,14 @@
+{
+  "simulator": "genesis",
+  "simulator_name": "Genesis",
+  "mode": "grasp",
+  "n_robots": 1,
+  "batch_size": 4096,
+  "per_env_fps": 37.75,
+  "total_fps": 154625.19,
+  "object": "ball",
+  "clutter": false,
+  "release": true,
+  "status": "success",
+  "timestamp": "2026-01-28T17:19:09.868049"
+}

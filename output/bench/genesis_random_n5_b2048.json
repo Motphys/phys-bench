@@ -1,0 +1,14 @@
+{
+  "simulator": "genesis",
+  "simulator_name": "Genesis",
+  "mode": "random",
+  "n_robots": 5,
+  "batch_size": 2048,
+  "per_env_fps": 6.91,
+  "total_fps": 14155.77,
+  "object": null,
+  "clutter": false,
+  "release": false,
+  "status": "success",
+  "timestamp": "2026-01-28T14:46:04.552156"
+}

@@ -1,0 +1,8 @@
+<mujoco model="scene_cube">
+  <worldbody>
+    <body name="cube" pos="0.65 0 0.02">
+      <freejoint/>
+      <geom size="0.02 0.02 0.02" type="box" rgba="0.8 0.1 0.1 1"/>
+    </body>
+  </worldbody>
+</mujoco>

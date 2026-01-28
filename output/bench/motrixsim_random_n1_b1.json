@@ -1,0 +1,14 @@
+{
+  "simulator": "motrixsim",
+  "simulator_name": "Motrixsim",
+  "mode": "random",
+  "n_robots": 1,
+  "batch_size": 1,
+  "per_env_fps": 63008.35,
+  "total_fps": 63008.35,
+  "object": null,
+  "clutter": false,
+  "release": false,
+  "status": "success",
+  "timestamp": "2026-01-28T15:11:51.815601"
+}
