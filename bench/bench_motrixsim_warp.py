@@ -276,16 +276,20 @@ else:  # grasp mode
 
     
     ref_pos_wp = wp.array(ref_pos, dtype=float)
+    step_counter_wp = wp.array([0], dtype=int)
 
     @wp.kernel
-    def randomize_ctrl_kernel(ref_pos: wp.array(dtype=float), ctrls: wp.array2d(dtype=float)):
+    def randomize_ctrl_kernel(ref_pos: wp.array(dtype=float), step_counter_wp: wp.array(dtype=int), ctrls: wp.array2d(dtype=float)):
+        step = step_counter_wp[0]
         wid, tid = wp.tid()
-        noise = wp.randf(wp.uint32(wid * ctrls.shape[1] + tid), -0.025, 0.025)
+        noise = wp.randf(wp.uint32(wid * ctrls.shape[1] + tid + step), -0.025, 0.025)
         ctrls[wid, tid] = ref_pos[tid] + noise
 
+        if wid == 0 and tid == 0:
+            step_counter_wp[0] = step + 1
 
     with wp.ScopedCapture(device="cuda") as capture:
-        wp.launch(randomize_ctrl_kernel, dim=(n_envs, 7), inputs=[ref_pos_wp, data.ctrls], block_dim=32)
+        wp.launch(randomize_ctrl_kernel, dim=(n_envs, 7), inputs=[ref_pos_wp, step_counter_wp, data.ctrls], block_dim=32)
     randomize_graph = capture.graph
 
     if args.v:
