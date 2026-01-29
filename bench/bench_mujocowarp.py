@@ -1,5 +1,7 @@
 import argparse
+import json
 import os
+import sys
 import time
 
 import warp as wp
@@ -309,6 +311,20 @@ if args.mode == "random":
         for i in range(benchmark_steps):
             wp.capture_launch(randomize_graph)
             wp.capture_launch(step_graph)
+            wp.synchronize()
+
+            # Check timeout: 2s per step cumulative
+            elapsed = time.perf_counter() - t0
+            if elapsed > (i + 1) * 2.0:
+                error_data = {
+                    "status": "error",
+                    "error_code": "TIMEOUT",
+                    "error_message": f"Timeout at step {i+1}: {elapsed:.2f}s > {(i+1)*2.0:.2f}s",
+                    "per_env_fps": 0.0,
+                    "total_fps": 0.0,
+                }
+                print(json.dumps(error_data))
+                sys.exit(1)
 
             mjd_cpu.qpos[:] = d.qpos.numpy()[0]
             mjd_cpu.qvel[:] = d.qvel.numpy()[0]
@@ -323,6 +339,20 @@ if args.mode == "random":
         for i in range(benchmark_steps):
             wp.capture_launch(randomize_graph)
             wp.capture_launch(step_graph)
+            wp.synchronize()
+
+            # Check timeout: 2s per step cumulative
+            elapsed = time.perf_counter() - t0
+            if elapsed > (i + 1) * 2.0:
+                error_data = {
+                    "status": "error",
+                    "error_code": "TIMEOUT",
+                    "error_message": f"Timeout at step {i+1}: {elapsed:.2f}s > {(i+1)*2.0:.2f}s",
+                    "per_env_fps": 0.0,
+                    "total_fps": 0.0,
+                }
+                print(json.dumps(error_data))
+                sys.exit(1)
 
         t1 = time.perf_counter()
 
@@ -414,6 +444,20 @@ else:  # grasp mode
             wp.capture_launch(randomize_graph)
 
         wp.capture_launch(step_graph)
+        wp.synchronize()
+
+        # Check timeout: 2s per step cumulative
+        elapsed = time.perf_counter() - t0
+        if elapsed > (i + 1) * 2.0:
+            error_data = {
+                "status": "error",
+                "error_code": "TIMEOUT",
+                "error_message": f"Timeout at step {i+1}: {elapsed:.2f}s > {(i+1)*2.0:.2f}s",
+                "per_env_fps": 0.0,
+                "total_fps": 0.0,
+            }
+            print(json.dumps(error_data))
+            sys.exit(1)
 
         if args.v:
             mjd_cpu.qpos[:] = d.qpos.numpy()[0]

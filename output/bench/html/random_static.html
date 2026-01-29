@@ -75,6 +75,90 @@
             border-color: #3b82f6;
         }
 
+        /* Hardware Tabs */
+        .hardware-tabs {
+            position: sticky;
+            top: 0;
+            z-index: 98;
+            background: var(--card-bg);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+        }
+
+        .hardware-tab {
+            padding: 0.75rem 1.5rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .hardware-tab:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+
+        .hardware-tab.active {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .hardware-tab.cpu-tab {
+            border-color: #3b82f6;
+        }
+
+        .hardware-tab.cpu-tab.active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .hardware-tab.gpu-tab {
+            border-color: #22c55e;
+        }
+
+        .hardware-tab.gpu-tab.active {
+            background: #22c55e;
+            color: white;
+        }
+
+        .hardware-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+
+        .cpu-tab .hardware-badge {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .cpu-tab.active .hardware-badge {
+            background: rgba(255,255,255,0.3);
+            color: white;
+        }
+
+        .gpu-tab .hardware-badge {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .gpu-tab.active .hardware-badge {
+            background: rgba(255,255,255,0.3);
+            color: white;
+        }
+
         /* Main Content */
         main {
             padding: 2rem;
@@ -316,14 +400,19 @@
         <h1>Benchmark Report - Random Static</h1>
     </header>
 
-    <nav class="quick-nav">
-        <button class="nav-tab active" data-target="by-n">By Robot Count</button>
-<button class="nav-tab" data-target="by-b">By Batch Size</button>
-<button class="nav-tab" data-target="mode-random">Random</button>
-<button class="nav-tab" data-target="detailed">Detailed Results</button>
-    </nav>
+    <div class="hardware-tabs">
+        <button class="hardware-tab cpu-tab active" data-hardware="AMD_Ryzen_7_9700X_8-Core_Processor">
+            <span class="hardware-badge">CPU</span>
+            <span>AMD Ryzen 7 9700X 8-Core Processor</span>
+        </button>
+        <button class="hardware-tab gpu-tab" data-hardware="NVIDIA_GeForce_RTX_5090_D_v2">
+            <span class="hardware-badge">GPU</span>
+            <span>NVIDIA GeForce RTX 5090 D v2</span>
+        </button>
+    </div>
 
-    <main>
+    <main id="main-content">
+        
         
     <section class="section" id="by-n">
         <div class="section-header">
@@ -360,60 +449,18 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="sim-col">Genesis</td>
-                                <td class="fps-cell high">
-                                    1,699
-                                    <span class="fps-secondary">(1,699 total)</span>
-                                </td>
-                                <td class="fps-cell low">
-                                    8
-                                    <span class="fps-secondary">(8 total)</span>
-                                </td>
-                                <td class="fps-cell failed">FAILED</td>
-                            </tr>
-                            <tr>
-                                <td class="sim-col">IsaacSim</td>
-                                <td class="fps-cell high">
-                                    1,183
-                                    <span class="fps-secondary">(1,183 total)</span>
-                                </td>
-                                <td class="fps-cell medium">
-                                    359
-                                    <span class="fps-secondary">(359 total)</span>
-                                </td>
-                                <td class="fps-cell medium">
-                                    207
-                                    <span class="fps-secondary">(207 total)</span>
-                                </td>
-                            </tr>
-                            <tr>
                                 <td class="sim-col">MotrixSim</td>
                                 <td class="fps-cell high">
-                                    63,008
-                                    <span class="fps-secondary">(63,008 total)</span>
+                                    60,940
+                                    <span class="fps-secondary">(60,940 total)</span>
                                 </td>
                                 <td class="fps-cell high">
-                                    17,196
-                                    <span class="fps-secondary">(17,196 total)</span>
+                                    17,300
+                                    <span class="fps-secondary">(17,300 total)</span>
                                 </td>
                                 <td class="fps-cell high">
-                                    9,104
-                                    <span class="fps-secondary">(9,104 total)</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="sim-col">MuJoCo-Warp</td>
-                                <td class="fps-cell medium">
-                                    253
-                                    <span class="fps-secondary">(253 total)</span>
-                                </td>
-                                <td class="fps-cell medium">
-                                    223
-                                    <span class="fps-secondary">(223 total)</span>
-                                </td>
-                                <td class="fps-cell medium">
-                                    103
-                                    <span class="fps-secondary">(103 total)</span>
+                                    9,026
+                                    <span class="fps-secondary">(9,026 total)</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -434,33 +481,12 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="sim-col">Genesis</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell failed">FAILED</td>
-                            </tr>
-                            <tr>
-                                <td class="sim-col">IsaacSim</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell failed">FAILED</td>
-                            </tr>
-                            <tr>
                                 <td class="sim-col">MotrixSim</td>
                                 <td class="fps-cell" style="color: #cbd5e1;">—</td>
                                 <td class="fps-cell" style="color: #cbd5e1;">—</td>
                                 <td class="fps-cell medium">
-                                    228
-                                    <span class="fps-secondary">(58,257 total)</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="sim-col">MuJoCo-Warp</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell low">
-                                    82
-                                    <span class="fps-secondary">(20,966 total)</span>
+                                    343
+                                    <span class="fps-secondary">(87,693 total)</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -481,35 +507,11 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="sim-col">Genesis</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell low">
-                                    7
-                                    <span class="fps-secondary">(3,589 total)</span>
-                                </td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                            </tr>
-                            <tr>
-                                <td class="sim-col">IsaacSim</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell failed">FAILED</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                            </tr>
-                            <tr>
                                 <td class="sim-col">MotrixSim</td>
                                 <td class="fps-cell" style="color: #cbd5e1;">—</td>
                                 <td class="fps-cell medium">
-                                    221
-                                    <span class="fps-secondary">(112,999 total)</span>
-                                </td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                            </tr>
-                            <tr>
-                                <td class="sim-col">MuJoCo-Warp</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell medium">
-                                    179
-                                    <span class="fps-secondary">(91,569 total)</span>
+                                    303
+                                    <span class="fps-secondary">(155,328 total)</span>
                                 </td>
                                 <td class="fps-cell" style="color: #cbd5e1;">—</td>
                             </tr>
@@ -531,42 +533,15 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="sim-col">Genesis</td>
-                                <td class="fps-cell medium">
-                                    878
-                                    <span class="fps-secondary">(899,495 total)</span>
-                                </td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell failed">FAILED</td>
-                            </tr>
-                            <tr>
-                                <td class="sim-col">IsaacSim</td>
-                                <td class="fps-cell failed">FAILED</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell failed">FAILED</td>
-                            </tr>
-                            <tr>
                                 <td class="sim-col">MotrixSim</td>
                                 <td class="fps-cell medium">
-                                    456
-                                    <span class="fps-secondary">(467,451 total)</span>
+                                    678
+                                    <span class="fps-secondary">(694,153 total)</span>
                                 </td>
                                 <td class="fps-cell" style="color: #cbd5e1;">—</td>
                                 <td class="fps-cell low">
-                                    59
-                                    <span class="fps-secondary">(60,694 total)</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="sim-col">MuJoCo-Warp</td>
-                                <td class="fps-cell medium">
-                                    173
-                                    <span class="fps-secondary">(177,341 total)</span>
-                                </td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell low">
-                                    76
-                                    <span class="fps-secondary">(77,818 total)</span>
+                                    84
+                                    <span class="fps-secondary">(86,037 total)</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -587,42 +562,15 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="sim-col">Genesis</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell low">
-                                    7
-                                    <span class="fps-secondary">(14,156 total)</span>
-                                </td>
-                                <td class="fps-cell failed">FAILED</td>
-                            </tr>
-                            <tr>
-                                <td class="sim-col">IsaacSim</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell failed">FAILED</td>
-                                <td class="fps-cell failed">FAILED</td>
-                            </tr>
-                            <tr>
                                 <td class="sim-col">MotrixSim</td>
                                 <td class="fps-cell" style="color: #cbd5e1;">—</td>
                                 <td class="fps-cell low">
-                                    58
-                                    <span class="fps-secondary">(118,974 total)</span>
+                                    74
+                                    <span class="fps-secondary">(151,700 total)</span>
                                 </td>
                                 <td class="fps-cell low">
-                                    32
-                                    <span class="fps-secondary">(64,873 total)</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="sim-col">MuJoCo-Warp</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell medium">
-                                    128
-                                    <span class="fps-secondary">(262,343 total)</span>
-                                </td>
-                                <td class="fps-cell low">
-                                    69
-                                    <span class="fps-secondary">(141,649 total)</span>
+                                    43
+                                    <span class="fps-secondary">(87,920 total)</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -643,44 +591,14 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="sim-col">Genesis</td>
-                                <td class="fps-cell medium">
-                                    847
-                                    <span class="fps-secondary">(3,467,455 total)</span>
-                                </td>
-                                <td class="fps-cell low">
-                                    7
-                                    <span class="fps-secondary">(27,411 total)</span>
-                                </td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                            </tr>
-                            <tr>
-                                <td class="sim-col">IsaacSim</td>
-                                <td class="fps-cell failed">FAILED</td>
-                                <td class="fps-cell failed">FAILED</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                            </tr>
-                            <tr>
                                 <td class="sim-col">MotrixSim</td>
                                 <td class="fps-cell medium">
-                                    101
-                                    <span class="fps-secondary">(413,065 total)</span>
+                                    131
+                                    <span class="fps-secondary">(537,816 total)</span>
                                 </td>
                                 <td class="fps-cell low">
-                                    31
-                                    <span class="fps-secondary">(125,917 total)</span>
-                                </td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                            </tr>
-                            <tr>
-                                <td class="sim-col">MuJoCo-Warp</td>
-                                <td class="fps-cell low">
-                                    98
-                                    <span class="fps-secondary">(402,594 total)</span>
-                                </td>
-                                <td class="fps-cell low">
-                                    91
-                                    <span class="fps-secondary">(372,698 total)</span>
+                                    38
+                                    <span class="fps-secondary">(154,008 total)</span>
                                 </td>
                                 <td class="fps-cell" style="color: #cbd5e1;">—</td>
                             </tr>
@@ -702,34 +620,10 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="sim-col">Genesis</td>
-                                <td class="fps-cell medium">
-                                    814
-                                    <span class="fps-secondary">(6,668,850 total)</span>
-                                </td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                            </tr>
-                            <tr>
-                                <td class="sim-col">IsaacSim</td>
-                                <td class="fps-cell failed">FAILED</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                            </tr>
-                            <tr>
                                 <td class="sim-col">MotrixSim</td>
                                 <td class="fps-cell low">
-                                    52
-                                    <span class="fps-secondary">(428,879 total)</span>
-                                </td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
-                            </tr>
-                            <tr>
-                                <td class="sim-col">MuJoCo-Warp</td>
-                                <td class="fps-cell low">
-                                    65
-                                    <span class="fps-secondary">(535,669 total)</span>
+                                    64
+                                    <span class="fps-secondary">(525,152 total)</span>
                                 </td>
                                 <td class="fps-cell" style="color: #cbd5e1;">—</td>
                                 <td class="fps-cell" style="color: #cbd5e1;">—</td>
@@ -763,294 +657,6 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td>Genesis</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>1</td>
-                        <td>1</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell high">1,699</td>
-                        <td class="fps-cell high">1,699</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>Genesis</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>1</td>
-                        <td>1024</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell medium">878</td>
-                        <td class="fps-cell medium">899,495</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>Genesis</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>1</td>
-                        <td>4096</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell medium">847</td>
-                        <td class="fps-cell medium">3,467,455</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>Genesis</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>1</td>
-                        <td>8192</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell medium">814</td>
-                        <td class="fps-cell medium">6,668,850</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>Genesis</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>5</td>
-                        <td>1</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell low">8</td>
-                        <td class="fps-cell low">8</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>Genesis</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>5</td>
-                        <td>512</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell low">7</td>
-                        <td class="fps-cell low">3,589</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>Genesis</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>5</td>
-                        <td>2048</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell low">7</td>
-                        <td class="fps-cell low">14,156</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>Genesis</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>5</td>
-                        <td>4096</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell low">7</td>
-                        <td class="fps-cell low">27,411</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>Genesis</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>10</td>
-                        <td>1</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell failed">—</td>
-                        <td class="fps-cell failed">—</td>
-                        <td>Failed</td>
-                    </tr>
-                    <tr>
-                        <td>Genesis</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>10</td>
-                        <td>256</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell failed">—</td>
-                        <td class="fps-cell failed">—</td>
-                        <td>Failed</td>
-                    </tr>
-                    <tr>
-                        <td>Genesis</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>10</td>
-                        <td>1024</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell failed">—</td>
-                        <td class="fps-cell failed">—</td>
-                        <td>Failed</td>
-                    </tr>
-                    <tr>
-                        <td>Genesis</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>10</td>
-                        <td>2048</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell failed">—</td>
-                        <td class="fps-cell failed">—</td>
-                        <td>Failed</td>
-                    </tr>
-                    <tr>
-                        <td>IsaacSim</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>1</td>
-                        <td>1</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell high">1,183</td>
-                        <td class="fps-cell high">1,183</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>IsaacSim</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>1</td>
-                        <td>1024</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell failed">—</td>
-                        <td class="fps-cell failed">—</td>
-                        <td>Failed</td>
-                    </tr>
-                    <tr>
-                        <td>IsaacSim</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>1</td>
-                        <td>4096</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell failed">—</td>
-                        <td class="fps-cell failed">—</td>
-                        <td>Failed</td>
-                    </tr>
-                    <tr>
-                        <td>IsaacSim</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>1</td>
-                        <td>8192</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell failed">—</td>
-                        <td class="fps-cell failed">—</td>
-                        <td>Failed</td>
-                    </tr>
-                    <tr>
-                        <td>IsaacSim</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>5</td>
-                        <td>1</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell medium">359</td>
-                        <td class="fps-cell medium">359</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>IsaacSim</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>5</td>
-                        <td>512</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell failed">—</td>
-                        <td class="fps-cell failed">—</td>
-                        <td>Failed</td>
-                    </tr>
-                    <tr>
-                        <td>IsaacSim</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>5</td>
-                        <td>2048</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell failed">—</td>
-                        <td class="fps-cell failed">—</td>
-                        <td>Failed</td>
-                    </tr>
-                    <tr>
-                        <td>IsaacSim</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>5</td>
-                        <td>4096</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell failed">—</td>
-                        <td class="fps-cell failed">—</td>
-                        <td>Failed</td>
-                    </tr>
-                    <tr>
-                        <td>IsaacSim</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>10</td>
-                        <td>1</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell medium">207</td>
-                        <td class="fps-cell medium">207</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>IsaacSim</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>10</td>
-                        <td>256</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell failed">—</td>
-                        <td class="fps-cell failed">—</td>
-                        <td>Failed</td>
-                    </tr>
-                    <tr>
-                        <td>IsaacSim</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>10</td>
-                        <td>1024</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell failed">—</td>
-                        <td class="fps-cell failed">—</td>
-                        <td>Failed</td>
-                    </tr>
-                    <tr>
-                        <td>IsaacSim</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>10</td>
-                        <td>2048</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell failed">—</td>
-                        <td class="fps-cell failed">—</td>
-                        <td>Failed</td>
-                    </tr>
-                    <tr>
                         <td>MotrixSim</td>
                         <td>Random</td>
                         <td>—</td>
@@ -1058,8 +664,8 @@
                         <td>1</td>
                         <td>No</td>
                         <td>No</td>
-                        <td class="fps-cell high">63,008</td>
-                        <td class="fps-cell high">63,008</td>
+                        <td class="fps-cell high">60,940</td>
+                        <td class="fps-cell high">60,940</td>
                         <td>Success</td>
                     </tr>
                     <tr>
@@ -1070,8 +676,8 @@
                         <td>1024</td>
                         <td>No</td>
                         <td>No</td>
-                        <td class="fps-cell medium">456</td>
-                        <td class="fps-cell medium">467,451</td>
+                        <td class="fps-cell medium">678</td>
+                        <td class="fps-cell medium">694,153</td>
                         <td>Success</td>
                     </tr>
                     <tr>
@@ -1082,8 +688,8 @@
                         <td>4096</td>
                         <td>No</td>
                         <td>No</td>
-                        <td class="fps-cell medium">101</td>
-                        <td class="fps-cell medium">413,065</td>
+                        <td class="fps-cell medium">131</td>
+                        <td class="fps-cell medium">537,816</td>
                         <td>Success</td>
                     </tr>
                     <tr>
@@ -1094,8 +700,8 @@
                         <td>8192</td>
                         <td>No</td>
                         <td>No</td>
-                        <td class="fps-cell low">52</td>
-                        <td class="fps-cell low">428,879</td>
+                        <td class="fps-cell low">64</td>
+                        <td class="fps-cell low">525,152</td>
                         <td>Success</td>
                     </tr>
                     <tr>
@@ -1106,8 +712,8 @@
                         <td>1</td>
                         <td>No</td>
                         <td>No</td>
-                        <td class="fps-cell high">17,196</td>
-                        <td class="fps-cell high">17,196</td>
+                        <td class="fps-cell high">17,300</td>
+                        <td class="fps-cell high">17,300</td>
                         <td>Success</td>
                     </tr>
                     <tr>
@@ -1118,8 +724,8 @@
                         <td>512</td>
                         <td>No</td>
                         <td>No</td>
-                        <td class="fps-cell medium">221</td>
-                        <td class="fps-cell medium">112,999</td>
+                        <td class="fps-cell medium">303</td>
+                        <td class="fps-cell medium">155,328</td>
                         <td>Success</td>
                     </tr>
                     <tr>
@@ -1130,8 +736,8 @@
                         <td>2048</td>
                         <td>No</td>
                         <td>No</td>
-                        <td class="fps-cell low">58</td>
-                        <td class="fps-cell low">118,974</td>
+                        <td class="fps-cell low">74</td>
+                        <td class="fps-cell low">151,700</td>
                         <td>Success</td>
                     </tr>
                     <tr>
@@ -1142,8 +748,8 @@
                         <td>4096</td>
                         <td>No</td>
                         <td>No</td>
-                        <td class="fps-cell low">31</td>
-                        <td class="fps-cell low">125,917</td>
+                        <td class="fps-cell low">38</td>
+                        <td class="fps-cell low">154,008</td>
                         <td>Success</td>
                     </tr>
                     <tr>
@@ -1154,8 +760,8 @@
                         <td>1</td>
                         <td>No</td>
                         <td>No</td>
-                        <td class="fps-cell high">9,104</td>
-                        <td class="fps-cell high">9,104</td>
+                        <td class="fps-cell high">9,026</td>
+                        <td class="fps-cell high">9,026</td>
                         <td>Success</td>
                     </tr>
                     <tr>
@@ -1166,8 +772,8 @@
                         <td>256</td>
                         <td>No</td>
                         <td>No</td>
-                        <td class="fps-cell medium">228</td>
-                        <td class="fps-cell medium">58,257</td>
+                        <td class="fps-cell medium">343</td>
+                        <td class="fps-cell medium">87,693</td>
                         <td>Success</td>
                     </tr>
                     <tr>
@@ -1178,8 +784,8 @@
                         <td>1024</td>
                         <td>No</td>
                         <td>No</td>
-                        <td class="fps-cell low">59</td>
-                        <td class="fps-cell low">60,694</td>
+                        <td class="fps-cell low">84</td>
+                        <td class="fps-cell low">86,037</td>
                         <td>Success</td>
                     </tr>
                     <tr>
@@ -1190,171 +796,29 @@
                         <td>2048</td>
                         <td>No</td>
                         <td>No</td>
-                        <td class="fps-cell low">32</td>
-                        <td class="fps-cell low">64,873</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>MuJoCo-Warp</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>1</td>
-                        <td>1</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell medium">253</td>
-                        <td class="fps-cell medium">253</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>MuJoCo-Warp</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>1</td>
-                        <td>1024</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell medium">173</td>
-                        <td class="fps-cell medium">177,341</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>MuJoCo-Warp</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>1</td>
-                        <td>4096</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell low">98</td>
-                        <td class="fps-cell low">402,594</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>MuJoCo-Warp</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>1</td>
-                        <td>8192</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell low">65</td>
-                        <td class="fps-cell low">535,669</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>MuJoCo-Warp</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>5</td>
-                        <td>1</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell medium">223</td>
-                        <td class="fps-cell medium">223</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>MuJoCo-Warp</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>5</td>
-                        <td>512</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell medium">179</td>
-                        <td class="fps-cell medium">91,569</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>MuJoCo-Warp</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>5</td>
-                        <td>2048</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell medium">128</td>
-                        <td class="fps-cell medium">262,343</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>MuJoCo-Warp</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>5</td>
-                        <td>4096</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell low">91</td>
-                        <td class="fps-cell low">372,698</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>MuJoCo-Warp</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>10</td>
-                        <td>1</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell medium">103</td>
-                        <td class="fps-cell medium">103</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>MuJoCo-Warp</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>10</td>
-                        <td>256</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell low">82</td>
-                        <td class="fps-cell low">20,966</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>MuJoCo-Warp</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>10</td>
-                        <td>1024</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell low">76</td>
-                        <td class="fps-cell low">77,818</td>
-                        <td>Success</td>
-                    </tr>
-                    <tr>
-                        <td>MuJoCo-Warp</td>
-                        <td>Random</td>
-                        <td>—</td>
-                        <td>10</td>
-                        <td>2048</td>
-                        <td>No</td>
-                        <td>No</td>
-                        <td class="fps-cell low">69</td>
-                        <td class="fps-cell low">141,649</td>
+                        <td class="fps-cell low">43</td>
+                        <td class="fps-cell low">87,920</td>
                         <td>Success</td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </section>
+    
     </main>
 
     <script>
-        // Initialize all charts after DOM is ready
-        document.addEventListener('DOMContentLoaded', function() {
-            const chartConfigs = [
+        // All hardware data
+        const allHardwareData = {
+    "NVIDIA_GeForce_RTX_5090_D_v2": {
+        chartConfigs: [
 {
         id: 'chart-by-n1',
         config: {
             type: 'bar',
             data: {
                 labels: ["B=1", "B=1024", "B=4096", "B=8192"],
-                datasets: [{"label": "Genesis", "data": [1699.1, 899494.62, 3467454.71, 6668849.94], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [1183.12, 0, 0, 0], "backgroundColor": "#ef4444"}, {"label": "MotrixSim", "data": [63008.35, 467450.83, 413065.43, 428879.16], "backgroundColor": "#22c55e"}, {"label": "MuJoCo-Warp", "data": [253.41, 177340.56, 402593.91, 535668.79], "backgroundColor": "#f59e0b"}]
+                datasets: [{"label": "Genesis", "data": [2001.89, 972315.9, 3727619.92, 7145226.12], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [0, 336318.02, 1185490.25, 1810293.4], "backgroundColor": "#ef4444"}, {"label": "MuJoCo-Warp", "data": [3005.07, 1870522.42, 6018488.45, 9059978.94], "backgroundColor": "#f59e0b"}]
             },
             options: {
                 responsive: true,
@@ -1413,7 +877,7 @@
             type: 'bar',
             data: {
                 labels: ["B=1", "B=512", "B=2048", "B=4096"],
-                datasets: [{"label": "Genesis", "data": [7.5, 3588.94, 14155.77, 27410.54], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [359.24, 0, 0, 0], "backgroundColor": "#ef4444"}, {"label": "MotrixSim", "data": [17195.99, 112999.4, 118973.89, 125916.53], "backgroundColor": "#22c55e"}, {"label": "MuJoCo-Warp", "data": [223.39, 91568.78, 262343.32, 372697.76], "backgroundColor": "#f59e0b"}]
+                datasets: [{"label": "Genesis", "data": [518.87, 122763.21, 458831.36, 884925.62], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [356.64, 158578.9, 367965.88, 352994.54], "backgroundColor": "#ef4444"}, {"label": "MuJoCo-Warp", "data": [2058.1, 554035.37, 1440313.41, 1896651.92], "backgroundColor": "#f59e0b"}]
             },
             options: {
                 responsive: true,
@@ -1472,7 +936,7 @@
             type: 'bar',
             data: {
                 labels: ["B=1", "B=256", "B=1024", "B=2048"],
-                datasets: [{"label": "IsaacSim", "data": [207.23, 0, 0, 0], "backgroundColor": "#ef4444"}, {"label": "MotrixSim", "data": [9104.37, 58257.29, 60693.99, 64873.42], "backgroundColor": "#22c55e"}, {"label": "MuJoCo-Warp", "data": [103.19, 20965.72, 77817.94, 141648.6], "backgroundColor": "#f59e0b"}]
+                datasets: [{"label": "Genesis", "data": [236.29, 23974.32, 89138.55, 172544.46], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [355.39, 81088.07, 190442.54, 170123.72], "backgroundColor": "#ef4444"}, {"label": "MuJoCo-Warp", "data": [1523.17, 224471.06, 543451.91, 648762.08], "backgroundColor": "#f59e0b"}]
             },
             options: {
                 responsive: true,
@@ -1531,7 +995,7 @@
             type: 'bar',
             data: {
                 labels: ["N=1", "N=5", "N=10"],
-                datasets: [{"label": "Genesis", "data": [1699.1, 7.5, 0], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [1183.12, 359.24, 207.23], "backgroundColor": "#ef4444"}, {"label": "MotrixSim", "data": [63008.35, 17195.99, 9104.37], "backgroundColor": "#22c55e"}, {"label": "MuJoCo-Warp", "data": [253.41, 223.39, 103.19], "backgroundColor": "#f59e0b"}]
+                datasets: [{"label": "Genesis", "data": [2001.89, 518.87, 236.29], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [0, 356.64, 355.39], "backgroundColor": "#ef4444"}, {"label": "MuJoCo-Warp", "data": [3005.07, 2058.1, 1523.17], "backgroundColor": "#f59e0b"}]
             },
             options: {
                 responsive: true,
@@ -1590,7 +1054,7 @@
             type: 'bar',
             data: {
                 labels: ["N=10"],
-                datasets: [{"label": "MotrixSim", "data": [58257.29], "backgroundColor": "#22c55e"}, {"label": "MuJoCo-Warp", "data": [20965.72], "backgroundColor": "#f59e0b"}]
+                datasets: [{"label": "Genesis", "data": [23974.32], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [81088.07], "backgroundColor": "#ef4444"}, {"label": "MuJoCo-Warp", "data": [224471.06], "backgroundColor": "#f59e0b"}]
             },
             options: {
                 responsive: true,
@@ -1649,7 +1113,7 @@
             type: 'bar',
             data: {
                 labels: ["N=5"],
-                datasets: [{"label": "Genesis", "data": [3588.94], "backgroundColor": "#3b82f6"}, {"label": "MotrixSim", "data": [112999.4], "backgroundColor": "#22c55e"}, {"label": "MuJoCo-Warp", "data": [91568.78], "backgroundColor": "#f59e0b"}]
+                datasets: [{"label": "Genesis", "data": [122763.21], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [158578.9], "backgroundColor": "#ef4444"}, {"label": "MuJoCo-Warp", "data": [554035.37], "backgroundColor": "#f59e0b"}]
             },
             options: {
                 responsive: true,
@@ -1708,7 +1172,7 @@
             type: 'bar',
             data: {
                 labels: ["N=1", "N=10"],
-                datasets: [{"label": "Genesis", "data": [899494.62, 0], "backgroundColor": "#3b82f6"}, {"label": "MotrixSim", "data": [467450.83, 60693.99], "backgroundColor": "#22c55e"}, {"label": "MuJoCo-Warp", "data": [177340.56, 77817.94], "backgroundColor": "#f59e0b"}]
+                datasets: [{"label": "Genesis", "data": [972315.9, 89138.55], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [336318.02, 190442.54], "backgroundColor": "#ef4444"}, {"label": "MuJoCo-Warp", "data": [1870522.42, 543451.91], "backgroundColor": "#f59e0b"}]
             },
             options: {
                 responsive: true,
@@ -1767,7 +1231,7 @@
             type: 'bar',
             data: {
                 labels: ["N=5", "N=10"],
-                datasets: [{"label": "Genesis", "data": [14155.77, 0], "backgroundColor": "#3b82f6"}, {"label": "MotrixSim", "data": [118973.89, 64873.42], "backgroundColor": "#22c55e"}, {"label": "MuJoCo-Warp", "data": [262343.32, 141648.6], "backgroundColor": "#f59e0b"}]
+                datasets: [{"label": "Genesis", "data": [458831.36, 172544.46], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [367965.88, 170123.72], "backgroundColor": "#ef4444"}, {"label": "MuJoCo-Warp", "data": [1440313.41, 648762.08], "backgroundColor": "#f59e0b"}]
             },
             options: {
                 responsive: true,
@@ -1826,7 +1290,7 @@
             type: 'bar',
             data: {
                 labels: ["N=1", "N=5"],
-                datasets: [{"label": "Genesis", "data": [3467454.71, 27410.54], "backgroundColor": "#3b82f6"}, {"label": "MotrixSim", "data": [413065.43, 125916.53], "backgroundColor": "#22c55e"}, {"label": "MuJoCo-Warp", "data": [402593.91, 372697.76], "backgroundColor": "#f59e0b"}]
+                datasets: [{"label": "Genesis", "data": [3727619.92, 884925.62], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [1185490.25, 352994.54], "backgroundColor": "#ef4444"}, {"label": "MuJoCo-Warp", "data": [6018488.45, 1896651.92], "backgroundColor": "#f59e0b"}]
             },
             options: {
                 responsive: true,
@@ -1885,7 +1349,7 @@
             type: 'bar',
             data: {
                 labels: ["N=1"],
-                datasets: [{"label": "Genesis", "data": [6668849.94], "backgroundColor": "#3b82f6"}, {"label": "MotrixSim", "data": [428879.16], "backgroundColor": "#22c55e"}, {"label": "MuJoCo-Warp", "data": [535668.79], "backgroundColor": "#f59e0b"}]
+                datasets: [{"label": "Genesis", "data": [7145226.12], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [1810293.4], "backgroundColor": "#ef4444"}, {"label": "MuJoCo-Warp", "data": [9059978.94], "backgroundColor": "#f59e0b"}]
             },
             options: {
                 responsive: true,
@@ -1944,7 +1408,7 @@
             type: 'bar',
             data: {
                 labels: ["B=1", "B=1024", "B=4096", "B=8192"],
-                datasets: [{"label": "Genesis", "data": [1699.1, 899494.62, 3467454.71, 6668849.94], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [1183.12, 0, 0, 0], "backgroundColor": "#ef4444"}, {"label": "MotrixSim", "data": [63008.35, 467450.83, 413065.43, 428879.16], "backgroundColor": "#22c55e"}, {"label": "MuJoCo-Warp", "data": [253.41, 177340.56, 402593.91, 535668.79], "backgroundColor": "#f59e0b"}]
+                datasets: [{"label": "Genesis", "data": [2001.89, 972315.9, 3727619.92, 7145226.12], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [0, 336318.02, 1185490.25, 1810293.4], "backgroundColor": "#ef4444"}, {"label": "MuJoCo-Warp", "data": [3005.07, 1870522.42, 6018488.45, 9059978.94], "backgroundColor": "#f59e0b"}]
             },
             options: {
                 responsive: true,
@@ -2003,7 +1467,7 @@
             type: 'bar',
             data: {
                 labels: ["B=1", "B=512", "B=2048", "B=4096"],
-                datasets: [{"label": "Genesis", "data": [7.5, 3588.94, 14155.77, 27410.54], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [359.24, 0, 0, 0], "backgroundColor": "#ef4444"}, {"label": "MotrixSim", "data": [17195.99, 112999.4, 118973.89, 125916.53], "backgroundColor": "#22c55e"}, {"label": "MuJoCo-Warp", "data": [223.39, 91568.78, 262343.32, 372697.76], "backgroundColor": "#f59e0b"}]
+                datasets: [{"label": "Genesis", "data": [518.87, 122763.21, 458831.36, 884925.62], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [356.64, 158578.9, 367965.88, 352994.54], "backgroundColor": "#ef4444"}, {"label": "MuJoCo-Warp", "data": [2058.1, 554035.37, 1440313.41, 1896651.92], "backgroundColor": "#f59e0b"}]
             },
             options: {
                 responsive: true,
@@ -2062,7 +1526,7 @@
             type: 'bar',
             data: {
                 labels: ["B=1", "B=256", "B=1024", "B=2048"],
-                datasets: [{"label": "Genesis", "data": [0, 0, 0, 0], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [207.23, 0, 0, 0], "backgroundColor": "#ef4444"}, {"label": "MotrixSim", "data": [9104.37, 58257.29, 60693.99, 64873.42], "backgroundColor": "#22c55e"}, {"label": "MuJoCo-Warp", "data": [103.19, 20965.72, 77817.94, 141648.6], "backgroundColor": "#f59e0b"}]
+                datasets: [{"label": "Genesis", "data": [236.29, 23974.32, 89138.55, 172544.46], "backgroundColor": "#3b82f6"}, {"label": "IsaacSim", "data": [355.39, 81088.07, 190442.54, 170123.72], "backgroundColor": "#ef4444"}, {"label": "MuJoCo-Warp", "data": [1523.17, 224471.06, 543451.91, 648762.08], "backgroundColor": "#f59e0b"}]
             },
             options: {
                 responsive: true,
@@ -2115,52 +1579,2061 @@
             }
         }
     }
-];
+],
+        contentHtml: `
+    <section class="section" id="by-n">
+        <div class="section-header">
+            <h2>Performance by Robot Count (N)</h2>
+        </div>
+        <div class="section-content"><div class="chart-container"><canvas id="chart-by-n1"></canvas></div><div class="chart-container"><canvas id="chart-by-n5"></canvas></div><div class="chart-container"><canvas id="chart-by-n10"></canvas></div>
+        </div>
+    </section>
+    <section class="section" id="by-b">
+        <div class="section-header">
+            <h2>Performance by Batch Size (B)</h2>
+        </div>
+        <div class="section-content"><div class="chart-container"><canvas id="chart-by-b1"></canvas></div><div class="chart-container"><canvas id="chart-by-b256"></canvas></div><div class="chart-container"><canvas id="chart-by-b512"></canvas></div><div class="chart-container"><canvas id="chart-by-b1024"></canvas></div><div class="chart-container"><canvas id="chart-by-b2048"></canvas></div><div class="chart-container"><canvas id="chart-by-b4096"></canvas></div><div class="chart-container"><canvas id="chart-by-b8192"></canvas></div>
+        </div>
+    </section>
+    <section class="section" id="mode-random">
+        <div class="section-header">
+            <h2>Random Mode Performance</h2>
+        </div>
+        <div class="section-content"><div class="subsection"><div class="subsection-title">Performance Charts</div><div class="chart-container"><canvas id="chart-random-n1"></canvas></div><div class="chart-container"><canvas id="chart-random-n5"></canvas></div><div class="chart-container"><canvas id="chart-random-n10"></canvas></div></div><div class="subsection"><div class="subsection-title">Detailed Data Tables</div>
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 0.75rem; color: #64748b;">Batch Size: 1</h4>
+                <div class="matrix-wrapper">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Simulator</th>
+                                <th>N=1 robots</th>
+                                <th>N=5 robots</th>
+                                <th>N=10 robots</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="sim-col">Genesis</td>
+                                <td class="fps-cell high">
+                                    2,002
+                                    <span class="fps-secondary">(2,002 total)</span>
+                                </td>
+                                <td class="fps-cell medium">
+                                    519
+                                    <span class="fps-secondary">(519 total)</span>
+                                </td>
+                                <td class="fps-cell medium">
+                                    236
+                                    <span class="fps-secondary">(236 total)</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="sim-col">IsaacSim</td>
+                                <td class="fps-cell failed">FAILED</td>
+                                <td class="fps-cell medium">
+                                    357
+                                    <span class="fps-secondary">(357 total)</span>
+                                </td>
+                                <td class="fps-cell medium">
+                                    355
+                                    <span class="fps-secondary">(355 total)</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="sim-col">MuJoCo-Warp</td>
+                                <td class="fps-cell high">
+                                    3,005
+                                    <span class="fps-secondary">(3,005 total)</span>
+                                </td>
+                                <td class="fps-cell high">
+                                    2,058
+                                    <span class="fps-secondary">(2,058 total)</span>
+                                </td>
+                                <td class="fps-cell high">
+                                    1,523
+                                    <span class="fps-secondary">(1,523 total)</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 0.75rem; color: #64748b;">Batch Size: 256</h4>
+                <div class="matrix-wrapper">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Simulator</th>
+                                <th>N=1 robots</th>
+                                <th>N=5 robots</th>
+                                <th>N=10 robots</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="sim-col">Genesis</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell low">
+                                    94
+                                    <span class="fps-secondary">(23,974 total)</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="sim-col">IsaacSim</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell medium">
+                                    317
+                                    <span class="fps-secondary">(81,088 total)</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="sim-col">MuJoCo-Warp</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell medium">
+                                    877
+                                    <span class="fps-secondary">(224,471 total)</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 0.75rem; color: #64748b;">Batch Size: 512</h4>
+                <div class="matrix-wrapper">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Simulator</th>
+                                <th>N=1 robots</th>
+                                <th>N=5 robots</th>
+                                <th>N=10 robots</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="sim-col">Genesis</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell medium">
+                                    240
+                                    <span class="fps-secondary">(122,763 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                            </tr>
+                            <tr>
+                                <td class="sim-col">IsaacSim</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell medium">
+                                    310
+                                    <span class="fps-secondary">(158,579 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                            </tr>
+                            <tr>
+                                <td class="sim-col">MuJoCo-Warp</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell high">
+                                    1,082
+                                    <span class="fps-secondary">(554,035 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 0.75rem; color: #64748b;">Batch Size: 1024</h4>
+                <div class="matrix-wrapper">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Simulator</th>
+                                <th>N=1 robots</th>
+                                <th>N=5 robots</th>
+                                <th>N=10 robots</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="sim-col">Genesis</td>
+                                <td class="fps-cell medium">
+                                    950
+                                    <span class="fps-secondary">(972,316 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell low">
+                                    87
+                                    <span class="fps-secondary">(89,139 total)</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="sim-col">IsaacSim</td>
+                                <td class="fps-cell medium">
+                                    328
+                                    <span class="fps-secondary">(336,318 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell medium">
+                                    186
+                                    <span class="fps-secondary">(190,443 total)</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="sim-col">MuJoCo-Warp</td>
+                                <td class="fps-cell high">
+                                    1,827
+                                    <span class="fps-secondary">(1,870,522 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell medium">
+                                    531
+                                    <span class="fps-secondary">(543,452 total)</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 0.75rem; color: #64748b;">Batch Size: 2048</h4>
+                <div class="matrix-wrapper">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Simulator</th>
+                                <th>N=1 robots</th>
+                                <th>N=5 robots</th>
+                                <th>N=10 robots</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="sim-col">Genesis</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell medium">
+                                    224
+                                    <span class="fps-secondary">(458,831 total)</span>
+                                </td>
+                                <td class="fps-cell low">
+                                    84
+                                    <span class="fps-secondary">(172,544 total)</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="sim-col">IsaacSim</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell medium">
+                                    180
+                                    <span class="fps-secondary">(367,966 total)</span>
+                                </td>
+                                <td class="fps-cell low">
+                                    83
+                                    <span class="fps-secondary">(170,124 total)</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="sim-col">MuJoCo-Warp</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell medium">
+                                    703
+                                    <span class="fps-secondary">(1,440,313 total)</span>
+                                </td>
+                                <td class="fps-cell medium">
+                                    317
+                                    <span class="fps-secondary">(648,762 total)</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 0.75rem; color: #64748b;">Batch Size: 4096</h4>
+                <div class="matrix-wrapper">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Simulator</th>
+                                <th>N=1 robots</th>
+                                <th>N=5 robots</th>
+                                <th>N=10 robots</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="sim-col">Genesis</td>
+                                <td class="fps-cell medium">
+                                    910
+                                    <span class="fps-secondary">(3,727,620 total)</span>
+                                </td>
+                                <td class="fps-cell medium">
+                                    216
+                                    <span class="fps-secondary">(884,926 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                            </tr>
+                            <tr>
+                                <td class="sim-col">IsaacSim</td>
+                                <td class="fps-cell medium">
+                                    289
+                                    <span class="fps-secondary">(1,185,490 total)</span>
+                                </td>
+                                <td class="fps-cell low">
+                                    86
+                                    <span class="fps-secondary">(352,995 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                            </tr>
+                            <tr>
+                                <td class="sim-col">MuJoCo-Warp</td>
+                                <td class="fps-cell high">
+                                    1,469
+                                    <span class="fps-secondary">(6,018,488 total)</span>
+                                </td>
+                                <td class="fps-cell medium">
+                                    463
+                                    <span class="fps-secondary">(1,896,652 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 0.75rem; color: #64748b;">Batch Size: 8192</h4>
+                <div class="matrix-wrapper">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Simulator</th>
+                                <th>N=1 robots</th>
+                                <th>N=5 robots</th>
+                                <th>N=10 robots</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="sim-col">Genesis</td>
+                                <td class="fps-cell medium">
+                                    872
+                                    <span class="fps-secondary">(7,145,226 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                            </tr>
+                            <tr>
+                                <td class="sim-col">IsaacSim</td>
+                                <td class="fps-cell medium">
+                                    221
+                                    <span class="fps-secondary">(1,810,293 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                            </tr>
+                            <tr>
+                                <td class="sim-col">MuJoCo-Warp</td>
+                                <td class="fps-cell high">
+                                    1,106
+                                    <span class="fps-secondary">(9,059,979 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div></div>
+        </div>
+    </section>
+    <section class="section" id="detailed">
+        <div class="section-header">
+            <h2>Detailed Results</h2>
+        </div>
+        <div class="section-content">
+            <table class="detail-table">
+                <thead>
+                    <tr>
+                        <th>Simulator</th>
+                        <th>Mode</th>
+                        <th>Object</th>
+                        <th>N Robots</th>
+                        <th>Batch Size</th>
+                        <th>Clutter</th>
+                        <th>Release</th>
+                        <th>Per-Env FPS</th>
+                        <th>Total FPS</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Genesis</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>1</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell high">2,002</td>
+                        <td class="fps-cell high">2,002</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>Genesis</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>1024</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">950</td>
+                        <td class="fps-cell medium">972,316</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>Genesis</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>4096</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">910</td>
+                        <td class="fps-cell medium">3,727,620</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>Genesis</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>8192</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">872</td>
+                        <td class="fps-cell medium">7,145,226</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>Genesis</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>1</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">519</td>
+                        <td class="fps-cell medium">519</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>Genesis</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>512</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">240</td>
+                        <td class="fps-cell medium">122,763</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>Genesis</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>2048</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">224</td>
+                        <td class="fps-cell medium">458,831</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>Genesis</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>4096</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">216</td>
+                        <td class="fps-cell medium">884,926</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>Genesis</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>1</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">236</td>
+                        <td class="fps-cell medium">236</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>Genesis</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>256</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell low">94</td>
+                        <td class="fps-cell low">23,974</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>Genesis</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>1024</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell low">87</td>
+                        <td class="fps-cell low">89,139</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>Genesis</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>2048</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell low">84</td>
+                        <td class="fps-cell low">172,544</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>IsaacSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>1</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell failed">—</td>
+                        <td class="fps-cell failed">—</td>
+                        <td>Failed</td>
+                    </tr>
+                    <tr>
+                        <td>IsaacSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>1024</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">328</td>
+                        <td class="fps-cell medium">336,318</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>IsaacSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>4096</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">289</td>
+                        <td class="fps-cell medium">1,185,490</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>IsaacSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>8192</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">221</td>
+                        <td class="fps-cell medium">1,810,293</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>IsaacSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>1</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">357</td>
+                        <td class="fps-cell medium">357</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>IsaacSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>512</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">310</td>
+                        <td class="fps-cell medium">158,579</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>IsaacSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>2048</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">180</td>
+                        <td class="fps-cell medium">367,966</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>IsaacSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>4096</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell low">86</td>
+                        <td class="fps-cell low">352,995</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>IsaacSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>1</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">355</td>
+                        <td class="fps-cell medium">355</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>IsaacSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>256</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">317</td>
+                        <td class="fps-cell medium">81,088</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>IsaacSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>1024</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">186</td>
+                        <td class="fps-cell medium">190,443</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>IsaacSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>2048</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell low">83</td>
+                        <td class="fps-cell low">170,124</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MuJoCo-Warp</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>1</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell high">3,005</td>
+                        <td class="fps-cell high">3,005</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MuJoCo-Warp</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>1024</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell high">1,827</td>
+                        <td class="fps-cell high">1,870,522</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MuJoCo-Warp</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>4096</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell high">1,469</td>
+                        <td class="fps-cell high">6,018,488</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MuJoCo-Warp</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>8192</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell high">1,106</td>
+                        <td class="fps-cell high">9,059,979</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MuJoCo-Warp</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>1</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell high">2,058</td>
+                        <td class="fps-cell high">2,058</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MuJoCo-Warp</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>512</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell high">1,082</td>
+                        <td class="fps-cell high">554,035</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MuJoCo-Warp</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>2048</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">703</td>
+                        <td class="fps-cell medium">1,440,313</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MuJoCo-Warp</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>4096</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">463</td>
+                        <td class="fps-cell medium">1,896,652</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MuJoCo-Warp</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>1</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell high">1,523</td>
+                        <td class="fps-cell high">1,523</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MuJoCo-Warp</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>256</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">877</td>
+                        <td class="fps-cell medium">224,471</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MuJoCo-Warp</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>1024</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">531</td>
+                        <td class="fps-cell medium">543,452</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MuJoCo-Warp</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>2048</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">317</td>
+                        <td class="fps-cell medium">648,762</td>
+                        <td>Success</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>`
+    },
+    "AMD_Ryzen_7_9700X_8-Core_Processor": {
+        chartConfigs: [
+{
+        id: 'chart-by-n1',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["B=1", "B=1024", "B=4096", "B=8192"],
+                datasets: [{"label": "MotrixSim", "data": [60939.89, 694153.31, 537816.19, 525151.54], "backgroundColor": "#22c55e"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'N=1 Robot - Total FPS',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString() + ' FPS';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Total FPS',
+                            font: { size: 12 }
+                        },
+                        beginAtZero: true
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Simulator',
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-by-n5',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["B=1", "B=512", "B=2048", "B=4096"],
+                datasets: [{"label": "MotrixSim", "data": [17299.6, 155328.04, 151699.62, 154007.99], "backgroundColor": "#22c55e"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'N=5 Robots - Total FPS',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString() + ' FPS';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Total FPS',
+                            font: { size: 12 }
+                        },
+                        beginAtZero: true
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Simulator',
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-by-n10',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["B=1", "B=256", "B=1024", "B=2048"],
+                datasets: [{"label": "MotrixSim", "data": [9025.85, 87692.7, 86037.4, 87920.41], "backgroundColor": "#22c55e"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'N=10 Robots - Total FPS',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString() + ' FPS';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Total FPS',
+                            font: { size: 12 }
+                        },
+                        beginAtZero: true
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Simulator',
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-by-b1',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["N=1", "N=5", "N=10"],
+                datasets: [{"label": "MotrixSim", "data": [60939.89, 17299.6, 9025.85], "backgroundColor": "#22c55e"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'B=1 Batch Size - Total FPS',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString() + ' FPS';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Total FPS',
+                            font: { size: 12 }
+                        },
+                        beginAtZero: true
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Simulator',
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-by-b256',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["N=10"],
+                datasets: [{"label": "MotrixSim", "data": [87692.7], "backgroundColor": "#22c55e"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'B=256 Batch Size - Total FPS',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString() + ' FPS';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Total FPS',
+                            font: { size: 12 }
+                        },
+                        beginAtZero: true
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Simulator',
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-by-b512',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["N=5"],
+                datasets: [{"label": "MotrixSim", "data": [155328.04], "backgroundColor": "#22c55e"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'B=512 Batch Size - Total FPS',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString() + ' FPS';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Total FPS',
+                            font: { size: 12 }
+                        },
+                        beginAtZero: true
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Simulator',
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-by-b1024',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["N=1", "N=10"],
+                datasets: [{"label": "MotrixSim", "data": [694153.31, 86037.4], "backgroundColor": "#22c55e"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'B=1024 Batch Size - Total FPS',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString() + ' FPS';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Total FPS',
+                            font: { size: 12 }
+                        },
+                        beginAtZero: true
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Simulator',
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-by-b2048',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["N=5", "N=10"],
+                datasets: [{"label": "MotrixSim", "data": [151699.62, 87920.41], "backgroundColor": "#22c55e"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'B=2048 Batch Size - Total FPS',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString() + ' FPS';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Total FPS',
+                            font: { size: 12 }
+                        },
+                        beginAtZero: true
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Simulator',
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-by-b4096',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["N=1", "N=5"],
+                datasets: [{"label": "MotrixSim", "data": [537816.19, 154007.99], "backgroundColor": "#22c55e"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'B=4096 Batch Size - Total FPS',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString() + ' FPS';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Total FPS',
+                            font: { size: 12 }
+                        },
+                        beginAtZero: true
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Simulator',
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-by-b8192',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["N=1"],
+                datasets: [{"label": "MotrixSim", "data": [525151.54], "backgroundColor": "#22c55e"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'B=8192 Batch Size - Total FPS',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString() + ' FPS';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Total FPS',
+                            font: { size: 12 }
+                        },
+                        beginAtZero: true
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Simulator',
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-random-n1',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["B=1", "B=1024", "B=4096", "B=8192"],
+                datasets: [{"label": "MotrixSim", "data": [60939.89, 694153.31, 537816.19, 525151.54], "backgroundColor": "#22c55e"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Random Mode - N=1 Robot',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString() + ' FPS';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Total FPS',
+                            font: { size: 12 }
+                        },
+                        beginAtZero: true
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Simulator',
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-random-n5',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["B=1", "B=512", "B=2048", "B=4096"],
+                datasets: [{"label": "MotrixSim", "data": [17299.6, 155328.04, 151699.62, 154007.99], "backgroundColor": "#22c55e"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Random Mode - N=5 Robots',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString() + ' FPS';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Total FPS',
+                            font: { size: 12 }
+                        },
+                        beginAtZero: true
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Simulator',
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        }
+    },
+{
+        id: 'chart-random-n10',
+        config: {
+            type: 'bar',
+            data: {
+                labels: ["B=1", "B=256", "B=1024", "B=2048"],
+                datasets: [{"label": "MotrixSim", "data": [9025.85, 87692.7, 86037.4, 87920.41], "backgroundColor": "#22c55e"}]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Random Mode - N=10 Robots',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString() + ' FPS';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Total FPS',
+                            font: { size: 12 }
+                        },
+                        beginAtZero: true
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Simulator',
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
+        }
+    }
+],
+        contentHtml: `
+    <section class="section" id="by-n">
+        <div class="section-header">
+            <h2>Performance by Robot Count (N)</h2>
+        </div>
+        <div class="section-content"><div class="chart-container"><canvas id="chart-by-n1"></canvas></div><div class="chart-container"><canvas id="chart-by-n5"></canvas></div><div class="chart-container"><canvas id="chart-by-n10"></canvas></div>
+        </div>
+    </section>
+    <section class="section" id="by-b">
+        <div class="section-header">
+            <h2>Performance by Batch Size (B)</h2>
+        </div>
+        <div class="section-content"><div class="chart-container"><canvas id="chart-by-b1"></canvas></div><div class="chart-container"><canvas id="chart-by-b256"></canvas></div><div class="chart-container"><canvas id="chart-by-b512"></canvas></div><div class="chart-container"><canvas id="chart-by-b1024"></canvas></div><div class="chart-container"><canvas id="chart-by-b2048"></canvas></div><div class="chart-container"><canvas id="chart-by-b4096"></canvas></div><div class="chart-container"><canvas id="chart-by-b8192"></canvas></div>
+        </div>
+    </section>
+    <section class="section" id="mode-random">
+        <div class="section-header">
+            <h2>Random Mode Performance</h2>
+        </div>
+        <div class="section-content"><div class="subsection"><div class="subsection-title">Performance Charts</div><div class="chart-container"><canvas id="chart-random-n1"></canvas></div><div class="chart-container"><canvas id="chart-random-n5"></canvas></div><div class="chart-container"><canvas id="chart-random-n10"></canvas></div></div><div class="subsection"><div class="subsection-title">Detailed Data Tables</div>
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 0.75rem; color: #64748b;">Batch Size: 1</h4>
+                <div class="matrix-wrapper">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Simulator</th>
+                                <th>N=1 robots</th>
+                                <th>N=5 robots</th>
+                                <th>N=10 robots</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="sim-col">MotrixSim</td>
+                                <td class="fps-cell high">
+                                    60,940
+                                    <span class="fps-secondary">(60,940 total)</span>
+                                </td>
+                                <td class="fps-cell high">
+                                    17,300
+                                    <span class="fps-secondary">(17,300 total)</span>
+                                </td>
+                                <td class="fps-cell high">
+                                    9,026
+                                    <span class="fps-secondary">(9,026 total)</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 0.75rem; color: #64748b;">Batch Size: 256</h4>
+                <div class="matrix-wrapper">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Simulator</th>
+                                <th>N=1 robots</th>
+                                <th>N=5 robots</th>
+                                <th>N=10 robots</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="sim-col">MotrixSim</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell medium">
+                                    343
+                                    <span class="fps-secondary">(87,693 total)</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 0.75rem; color: #64748b;">Batch Size: 512</h4>
+                <div class="matrix-wrapper">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Simulator</th>
+                                <th>N=1 robots</th>
+                                <th>N=5 robots</th>
+                                <th>N=10 robots</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="sim-col">MotrixSim</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell medium">
+                                    303
+                                    <span class="fps-secondary">(155,328 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 0.75rem; color: #64748b;">Batch Size: 1024</h4>
+                <div class="matrix-wrapper">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Simulator</th>
+                                <th>N=1 robots</th>
+                                <th>N=5 robots</th>
+                                <th>N=10 robots</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="sim-col">MotrixSim</td>
+                                <td class="fps-cell medium">
+                                    678
+                                    <span class="fps-secondary">(694,153 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell low">
+                                    84
+                                    <span class="fps-secondary">(86,037 total)</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 0.75rem; color: #64748b;">Batch Size: 2048</h4>
+                <div class="matrix-wrapper">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Simulator</th>
+                                <th>N=1 robots</th>
+                                <th>N=5 robots</th>
+                                <th>N=10 robots</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="sim-col">MotrixSim</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell low">
+                                    74
+                                    <span class="fps-secondary">(151,700 total)</span>
+                                </td>
+                                <td class="fps-cell low">
+                                    43
+                                    <span class="fps-secondary">(87,920 total)</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 0.75rem; color: #64748b;">Batch Size: 4096</h4>
+                <div class="matrix-wrapper">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Simulator</th>
+                                <th>N=1 robots</th>
+                                <th>N=5 robots</th>
+                                <th>N=10 robots</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="sim-col">MotrixSim</td>
+                                <td class="fps-cell medium">
+                                    131
+                                    <span class="fps-secondary">(537,816 total)</span>
+                                </td>
+                                <td class="fps-cell low">
+                                    38
+                                    <span class="fps-secondary">(154,008 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 0.75rem; color: #64748b;">Batch Size: 8192</h4>
+                <div class="matrix-wrapper">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Simulator</th>
+                                <th>N=1 robots</th>
+                                <th>N=5 robots</th>
+                                <th>N=10 robots</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="sim-col">MotrixSim</td>
+                                <td class="fps-cell low">
+                                    64
+                                    <span class="fps-secondary">(525,152 total)</span>
+                                </td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                                <td class="fps-cell" style="color: #cbd5e1;">—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div></div>
+        </div>
+    </section>
+    <section class="section" id="detailed">
+        <div class="section-header">
+            <h2>Detailed Results</h2>
+        </div>
+        <div class="section-content">
+            <table class="detail-table">
+                <thead>
+                    <tr>
+                        <th>Simulator</th>
+                        <th>Mode</th>
+                        <th>Object</th>
+                        <th>N Robots</th>
+                        <th>Batch Size</th>
+                        <th>Clutter</th>
+                        <th>Release</th>
+                        <th>Per-Env FPS</th>
+                        <th>Total FPS</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>MotrixSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>1</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell high">60,940</td>
+                        <td class="fps-cell high">60,940</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MotrixSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>1024</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">678</td>
+                        <td class="fps-cell medium">694,153</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MotrixSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>4096</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">131</td>
+                        <td class="fps-cell medium">537,816</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MotrixSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>1</td>
+                        <td>8192</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell low">64</td>
+                        <td class="fps-cell low">525,152</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MotrixSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>1</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell high">17,300</td>
+                        <td class="fps-cell high">17,300</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MotrixSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>512</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">303</td>
+                        <td class="fps-cell medium">155,328</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MotrixSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>2048</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell low">74</td>
+                        <td class="fps-cell low">151,700</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MotrixSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>4096</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell low">38</td>
+                        <td class="fps-cell low">154,008</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MotrixSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>1</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell high">9,026</td>
+                        <td class="fps-cell high">9,026</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MotrixSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>256</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell medium">343</td>
+                        <td class="fps-cell medium">87,693</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MotrixSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>1024</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell low">84</td>
+                        <td class="fps-cell low">86,037</td>
+                        <td>Success</td>
+                    </tr>
+                    <tr>
+                        <td>MotrixSim</td>
+                        <td>Random</td>
+                        <td>—</td>
+                        <td>10</td>
+                        <td>2048</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td class="fps-cell low">43</td>
+                        <td class="fps-cell low">87,920</td>
+                        <td>Success</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>`
+    },
+};
 
-            chartConfigs.forEach(function(chartConfig) {
+        // Track current charts for cleanup
+        let currentCharts = [];
+
+        // Initialize charts for initial hardware
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstHardware = Object.keys(allHardwareData)[0];
+            if (firstHardware) {
+                initChartsForHardware(firstHardware);
+            }
+        });
+
+        // Function to initialize charts for a specific hardware
+        function initChartsForHardware(hardwareName) {
+            const hwData = allHardwareData[hardwareName];
+            if (!hwData || !hwData.chartConfigs) return;
+
+            hwData.chartConfigs.forEach(function(chartConfig) {
                 const canvas = document.getElementById(chartConfig.id);
                 if (canvas) {
-                    new Chart(canvas, chartConfig.config);
+                    const chart = new Chart(canvas, chartConfig.config);
+                    currentCharts.push(chart);
                 }
             });
-        });
+        }
 
-        // Tab click navigation
-        document.querySelectorAll('.nav-tab').forEach(tab => {
+        // Function to destroy all current charts
+        function destroyCurrentCharts() {
+            currentCharts.forEach(chart => {
+                try {
+                    chart.destroy();
+                } catch(e) {
+                    console.warn('Failed to destroy chart:', e);
+                }
+            });
+            currentCharts = [];
+        }
+
+        // Hardware tab click handler
+        document.querySelectorAll('.hardware-tab').forEach(tab => {
             tab.addEventListener('click', () => {
-                const targetId = tab.dataset.target;
-                const targetSection = document.getElementById(targetId);
+                const hardwareName = tab.dataset.hardware;
+                const hwData = allHardwareData[hardwareName];
 
-                if (targetSection) {
-                    targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (!hwData) return;
 
-                    // Update active state
-                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
+                // Update active tab state
+                document.querySelectorAll('.hardware-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Destroy existing charts
+                destroyCurrentCharts();
+
+                // Update content
+                const mainContent = document.getElementById('main-content');
+                if (mainContent && hwData.contentHtml) {
+                    mainContent.innerHTML = hwData.contentHtml;
                 }
+
+                // Initialize new charts
+                setTimeout(() => {
+                    initChartsForHardware(hardwareName);
+                }, 100);
             });
-        });
-
-        // Update active tab on scroll
-        const observerOptions = {
-            root: null,
-            rootMargin: '-20% 0px -60% 0px',
-            threshold: 0
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const sectionId = entry.target.id;
-                    document.querySelectorAll('.nav-tab').forEach(tab => {
-                        tab.classList.toggle('active', tab.dataset.target === sectionId);
-                    });
-                }
-            });
-        }, observerOptions);
-
-        document.querySelectorAll('.section').forEach(section => {
-            observer.observe(section);
         });
     </script>
 </body>

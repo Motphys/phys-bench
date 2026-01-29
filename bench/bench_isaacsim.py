@@ -1,4 +1,6 @@
 import argparse
+import json
+import sys
 import time
 
 import numpy as np
@@ -103,7 +105,13 @@ OBJECT_CONFIGS = {
 
 ########################## Setup World ##########################
 sim_dt = 0.01
-world = World(stage_units_in_meters=1.0, physics_dt=sim_dt, rendering_dt=sim_dt)
+world = World(
+    stage_units_in_meters=1.0,
+    physics_dt=sim_dt,
+    rendering_dt=sim_dt,
+    backend="torch",
+    device="cuda"
+)
 world.scene.add_default_ground_plane()
 
 ########################## Setup Robots and Objects ##########################
@@ -259,13 +267,26 @@ if args.mode == "random":
     gripper_pos_tensor = torch.full((total_robots, 2), warmup_qpos[7], device="cuda", dtype=torch.float32)
 
     t0 = time.perf_counter()
-    for _ in range(benchmark_steps):
+    for i in range(benchmark_steps):
         # Generate random noise on GPU
         noise = torch.rand((total_robots, 7), device="cuda", dtype=torch.float32) * 0.4 - 0.2
         target_arm = ref_pos_tensor + noise
         targets = torch.cat([target_arm, gripper_pos_tensor], dim=1)
         franka_view.set_joint_position_targets(targets)
         world.step(render=args.v)
+
+        # Check timeout: 2s per step cumulative
+        elapsed = time.perf_counter() - t0
+        if elapsed > (i + 1) * 2.0:
+            error_data = {
+                "status": "error",
+                "error_code": "TIMEOUT",
+                "error_message": f"Timeout at step {i+1}: {elapsed:.2f}s > {(i+1)*2.0:.2f}s",
+                "per_env_fps": 0.0,
+                "total_fps": 0.0,
+            }
+            print(json.dumps(error_data))
+            sys.exit(1)
     t1 = time.perf_counter()
 
     print(f"per env: {benchmark_steps / (t1 - t0):,.2f} FPS")
@@ -278,9 +299,12 @@ else:  # grasp mode
     lift_steps = config["lift_steps"]
     close_fingers = config["close_fingers"]
 
-    # Set initial positions
+    # Move to grasp position
+    print("Warmup Phase 0: Moving to grasp position (200 steps)...")
     grasp_qpos_tensor = torch.tensor(grasp_qpos, device="cuda", dtype=torch.float32).unsqueeze(0).repeat(total_robots, 1)
-    franka_view.set_joint_positions(grasp_qpos_tensor)
+    for _ in range(200):
+        franka_view.set_joint_position_targets(grasp_qpos_tensor)
+        world.step(render=args.v)
 
     print("Warmup Phase 1: Grasping (100 steps)...")
     grasp_target_qpos = grasp_qpos.copy()
@@ -314,6 +338,19 @@ else:  # grasp mode
             target_pos = torch.cat([target_arm, gripper_tensor], dim=1)
             franka_view.set_joint_position_targets(target_pos)
         world.step(render=args.v)
+
+        # Check timeout: 2s per step cumulative
+        elapsed = time.perf_counter() - t0
+        if elapsed > (i + 1) * 2.0:
+            error_data = {
+                "status": "error",
+                "error_code": "TIMEOUT",
+                "error_message": f"Timeout at step {i+1}: {elapsed:.2f}s > {(i+1)*2.0:.2f}s",
+                "per_env_fps": 0.0,
+                "total_fps": 0.0,
+            }
+            print(json.dumps(error_data))
+            sys.exit(1)
     t1 = time.perf_counter()
 
     print(f"per env: {benchmark_steps / (t1 - t0):,.2f} FPS")

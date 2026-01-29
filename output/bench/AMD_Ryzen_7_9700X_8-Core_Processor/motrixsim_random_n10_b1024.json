@@ -1,0 +1,15 @@
+{
+  "simulator": "motrixsim",
+  "simulator_name": "Motrixsim",
+  "mode": "random",
+  "n_robots": 10,
+  "batch_size": 1024,
+  "per_env_fps": 84.02,
+  "total_fps": 86037.4,
+  "object": null,
+  "clutter": false,
+  "release": false,
+  "status": "success",
+  "timestamp": "2026-01-29T18:03:58.839353",
+  "hardware_name": "AMD_Ryzen_7_9700X_8-Core_Processor"
+}

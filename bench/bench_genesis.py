@@ -1,8 +1,10 @@
 import argparse
+import json
+import math
+import sys
 import time
 
 import genesis as gs
-import numpy as np
 import torch
 
 parser = argparse.ArgumentParser()
@@ -57,36 +59,36 @@ def generate_clutter_positions(robot_pos, min_radius=0.3, spacing=0.15, min_coun
     radius = min_radius
     z_offset = 0.036
     while len(positions) < min_count:
-        circumference = 2 * np.pi * radius
+        circumference = 2 * math.pi * radius
         n_bottles = int(circumference / spacing)
         if n_bottles == 0:
             n_bottles = 1
         for j in range(n_bottles):
             if len(positions) >= min_count:
                 break
-            angle = 2 * np.pi * j / n_bottles
-            x = robot_pos[0] + radius * np.cos(angle) - 0.65
-            y = robot_pos[1] + radius * np.sin(angle)
+            angle = 2 * math.pi * j / n_bottles
+            x = robot_pos[0] + radius * math.cos(angle) - 0.65
+            y = robot_pos[1] + radius * math.sin(angle)
             positions.append((x, y, z_offset))
         radius += spacing
         z_offset += 0.1  # Stack bottles vertically as we add more rings
     return positions
 
 
-# Object configurations for grasp mode
+# Object configurations for grasp mode (will be converted to torch tensors when used)
 OBJECT_CONFIGS = {
     "ball": {
-        "grasp_qpos": np.array([-1.0323, 1.7628, 1.4904, -1.6749, -1.7715, 1.6293, 1.4417, 0.04, 0.04]),
+        "grasp_qpos": [-1.0323, 1.7628, 1.4904, -1.6749, -1.7715, 1.6293, 1.4417, 0.04, 0.04],
         "gripper_force": -0.5,
         "lift_steps": 100,
     },
     "cube": {
-        "grasp_qpos": np.array([-1.0104, 1.5623, 1.3601, -1.6840, -1.5863, 1.7810, 1.4598, 0.04, 0.04]),
+        "grasp_qpos": [-1.0104, 1.5623, 1.3601, -1.6840, -1.5863, 1.7810, 1.4598, 0.04, 0.04],
         "gripper_force": -0.5,
         "lift_steps": 50,
     },
     "bottle": {
-        "grasp_qpos": np.array([-0.9937, 1.4588, 1.3058, -1.6924, -1.4882, 1.8461, 1.4577, 0.04, 0.04]),
+        "grasp_qpos": [-0.9937, 1.4588, 1.3058, -1.6924, -1.4882, 1.8461, 1.4577, 0.04, 0.04],
         "gripper_force": -4.0,
         "lift_steps": 50,
     },
@@ -184,24 +186,24 @@ scene.build(n_envs=n_envs)
 # Use same parameters as defined in panda.xml for consistency across all simulators
 for franka in frankas:
     franka.set_dofs_kp(
-        np.array([4500, 4500, 3500, 3500, 2000, 2000, 2000, 350, 350]),
+        torch.tensor([4500, 4500, 3500, 3500, 2000, 2000, 2000, 350, 350], device="cuda"),
     )
     franka.set_dofs_kv(
-        np.array([450, 450, 350, 350, 200, 200, 200, 10, 10]),
+        torch.tensor([450, 450, 350, 350, 200, 200, 200, 10, 10], device="cuda"),
     )
     franka.set_dofs_force_range(
-        np.array([-87, -87, -87, -87, -12, -12, -12, -200, -200]),
-        np.array([87, 87, 87, 87, 12, 12, 12, 200, 200]),
+        torch.tensor([-87, -87, -87, -87, -12, -12, -12, -200, -200], device="cuda"),
+        torch.tensor([87, 87, 87, 87, 12, 12, 12, 200, 200], device="cuda"),
     )
 
-motor_dofs = np.arange(9)
-motors_dof = np.arange(7)
-fingers_dof = np.arange(7, 9)
+motor_dofs = torch.arange(9, device="cuda")
+motors_dof = torch.arange(7, device="cuda")
+fingers_dof = torch.arange(7, 9, device="cuda")
 
 ########################## mode-specific warmup and benchmark ##########################
 if args.mode == "random":
     # Random mode warmup
-    warmup_qpos = np.array([0.0, 0.0, 0.0, -1.5708, 0.0, 1.5708, -0.7853, 0.04, 0.04])
+    warmup_qpos = torch.tensor([0.0, 0.0, 0.0, -1.5708, 0.0, 1.5708, -0.7853, 0.04, 0.04], device="cuda")
 
     for i in range(200):
         for franka in frankas:
@@ -209,19 +211,32 @@ if args.mode == "random":
         scene.step()
 
     # Random mode benchmark
-    ref_pos = warmup_qpos[:7].copy()
+    ref_pos = warmup_qpos[:7]
     gripper_pos = warmup_qpos[7]
 
     t0 = time.perf_counter()
     for i in range(1000):
         for franka in frankas:
             noise = torch.rand((n_envs, 7), device="cuda") * 0.4 - 0.2
-            target_arm = torch.from_numpy(ref_pos).cuda() + noise
+            target_arm = ref_pos + noise
             target_pos = torch.cat(
                 [target_arm, torch.full((n_envs, 2), gripper_pos, device="cuda")], dim=1
             )
             franka.control_dofs_position(target_pos, motor_dofs)
         scene.step()
+
+        # Check timeout: 2s per step cumulative
+        elapsed = time.perf_counter() - t0
+        if elapsed > (i + 1) * 2.0:
+            error_data = {
+                "status": "error",
+                "error_code": "TIMEOUT",
+                "error_message": f"Timeout at step {i+1}: {elapsed:.2f}s > {(i+1)*2.0:.2f}s",
+                "per_env_fps": 0.0,
+                "total_fps": 0.0,
+            }
+            print(json.dumps(error_data))
+            sys.exit(1)
     t1 = time.perf_counter()
 
     print(f"per env: {1000 / (t1 - t0):,.2f} FPS")
@@ -229,12 +244,12 @@ if args.mode == "random":
 
 else:  # grasp mode
     config = OBJECT_CONFIGS[args.object]
-    grasp_qpos = config["grasp_qpos"]
+    grasp_qpos = torch.tensor(config["grasp_qpos"], device="cuda")
     gripper_force = config["gripper_force"]
     lift_steps = config["lift_steps"]
 
     # Compute lift_qpos (referenced from ball test, reused for all objects)
-    lift_qpos = np.array([-1.0426, 1.4028, 1.5634, -1.7114, -1.4055, 1.6015, 1.4510, 0.0, 0.0])
+    lift_qpos = torch.tensor([-1.0426, 1.4028, 1.5634, -1.7114, -1.4055, 1.6015, 1.4510, 0.0, 0.0], device="cuda")
 
     # Set initial position
     for franka in frankas:
@@ -244,7 +259,7 @@ else:  # grasp mode
     # Grasp phase
     for franka in frankas:
         franka.control_dofs_position(grasp_qpos[:-2], motors_dof)
-        franka.control_dofs_force(np.array([gripper_force, gripper_force]), fingers_dof)
+        franka.control_dofs_force(torch.tensor([gripper_force, gripper_force], device="cuda"), fingers_dof)
 
     for i in range(100):
         scene.step()
@@ -257,7 +272,7 @@ else:  # grasp mode
         scene.step()
 
     # Benchmark phase
-    ref_pos = torch.tile(torch.tensor(lift_qpos[:7]), [n_envs, 1]).cuda()
+    ref_pos = torch.tile(lift_qpos[:7], [n_envs, 1])
 
     t0 = time.perf_counter()
     for i in range(500):
@@ -267,6 +282,19 @@ else:  # grasp mode
                     ref_pos + torch.rand((n_envs, 7), device="cuda") * 0.05 - 0.025, motors_dof
                 )
         scene.step()
+
+        # Check timeout: 2s per step cumulative
+        elapsed = time.perf_counter() - t0
+        if elapsed > (i + 1) * 2.0:
+            error_data = {
+                "status": "error",
+                "error_code": "TIMEOUT",
+                "error_message": f"Timeout at step {i+1}: {elapsed:.2f}s > {(i+1)*2.0:.2f}s",
+                "per_env_fps": 0.0,
+                "total_fps": 0.0,
+            }
+            print(json.dumps(error_data))
+            sys.exit(1)
     t1 = time.perf_counter()
 
     print(f"per env: {500 / (t1 - t0):,.2f} FPS")
