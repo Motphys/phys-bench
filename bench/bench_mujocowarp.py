@@ -2,6 +2,7 @@ import argparse
 import os
 import time
 
+import warp as wp
 import mujoco
 import mujoco.viewer
 import numpy as np
@@ -241,7 +242,7 @@ m = mjw.put_model(mjm)
 if args.mode == "random" and args.clutter:
     d = mjw.make_data(mjm, nworld=n_envs, nconmax=20000, njmax=20000)
 else:
-    d = mjw.make_data(mjm, nworld=n_envs)
+    d = mjw.make_data(mjm, nworld=n_envs, nconmax=40 * n_robots, njmax=150 * n_robots)
 
 ########################## setup control ##########################
 actuators_per_robot = 8  # 7 joints + 1 gripper actuator
@@ -260,6 +261,12 @@ else:
 
 sim_dt = mjm.opt.timestep
 
+
+with wp.ScopedCapture(device="cuda") as capture:
+    mjw.step(m, d)
+step_graph = capture.graph
+
+
 ########################## mode-specific warmup and benchmark ##########################
 if args.mode == "random":
     print(f"Warmup: {n_robots} robots to initial position (200 steps)...")
@@ -273,29 +280,39 @@ if args.mode == "random":
 
     for i in range(200):
         wp.copy(d.ctrl, wp.array(warmup_ctrl, dtype=wp.float32))
-        mjw.step(m, d)
+        wp.capture_launch(step_graph)
 
     print(f"Benchmark: 1000 steps with {n_robots} robots (random motion)...")
     benchmark_steps = 1000
     ref_pos = warmup_qpos[:7].copy()
+    
+    ref_pos_wp = wp.array(ref_pos, dtype=float)
+    step_counter_wp = wp.array([0], dtype=int)
+
+    @wp.kernel
+    def randomize_ctrl_kernel(ref_pos: wp.array(dtype=float), step_counter_wp: wp.array(dtype=int), ctrl_per_robot: int, ctrls: wp.array2d(dtype=float)):
+        step = step_counter_wp[0]
+        wid, robot_id, tid = wp.tid()
+        noise = wp.randf(wp.uint32(wid * ctrls.shape[1] + tid + step), -0.025, 0.025)
+        ctrls[wid, robot_id * ctrl_per_robot + tid] = ref_pos[tid] + noise
+
+        if wid == 0 and tid == 0:
+            step_counter_wp[0] = step + 1
+
+    with wp.ScopedCapture(device="cuda") as capture:
+        wp.launch(randomize_ctrl_kernel, dim=(n_envs, n_robots, 7), inputs=[ref_pos_wp, step_counter_wp, actuators_per_robot, d.ctrl], block_dim=32)
+    randomize_graph = capture.graph
+
 
     if args.v:
         t0 = time.perf_counter()
         for i in range(benchmark_steps):
-            ctrl = np.zeros((n_envs, total_actuators), dtype=np.float32)
-
-            for robot_idx in range(n_robots):
-                offset = robot_idx * actuators_per_robot
-                noise = np.random.uniform(-0.2, 0.2, (n_envs, 7)).astype(np.float32)
-                ctrl[:, offset : offset + 7] = ref_pos + noise
-                ctrl[:, offset + 7] = warmup_qpos[7]
-
-            wp.copy(d.ctrl, wp.array(ctrl, dtype=wp.float32))
-            mjw.step(m, d)
+            wp.capture_launch(randomize_graph)
+            wp.capture_launch(step_graph)
 
             mjd_cpu.qpos[:] = d.qpos.numpy()[0]
             mjd_cpu.qvel[:] = d.qvel.numpy()[0]
-            mjd_cpu.ctrl[:] = ctrl[0]
+            # mjd_cpu.ctrl[:] = ctrl[0]
             mujoco.mj_forward(mjm, mjd_cpu)
             viewer.sync()
 
@@ -304,16 +321,8 @@ if args.mode == "random":
     else:
         t0 = time.perf_counter()
         for i in range(benchmark_steps):
-            ctrl = np.zeros((n_envs, total_actuators), dtype=np.float32)
-
-            for robot_idx in range(n_robots):
-                offset = robot_idx * actuators_per_robot
-                noise = np.random.uniform(-0.2, 0.2, (n_envs, 7)).astype(np.float32)
-                ctrl[:, offset : offset + 7] = ref_pos + noise
-                ctrl[:, offset + 7] = warmup_qpos[7]
-
-            wp.copy(d.ctrl, wp.array(ctrl, dtype=wp.float32))
-            mjw.step(m, d)
+            wp.capture_launch(randomize_graph)
+            wp.capture_launch(step_graph)
 
         t1 = time.perf_counter()
 
@@ -364,7 +373,7 @@ else:  # grasp mode
             offset = robot_idx * actuators_per_robot
             ctrl_array[:, offset + 7] = gripper_val
         wp.copy(d.ctrl, wp.array(ctrl_array, dtype=wp.float32))
-        mjw.step(m, d)
+        wp.capture_launch(step_graph)
 
     print(f"Warmup Phase 2: Lifting ({lift_steps} steps)...")
     # Create lift control
@@ -375,26 +384,36 @@ else:  # grasp mode
 
     for i in range(lift_steps):
         wp.copy(d.ctrl, wp.array(ctrl_array, dtype=wp.float32))
-        mjw.step(m, d)
+        wp.capture_launch(step_graph)
 
     print("Benchmark: 500 steps...")
     benchmark_steps = 500
     ref_pos = lift_qpos[:7].copy()
 
+    ref_pos_wp = wp.array(ref_pos, dtype=float)
+    step_counter_wp = wp.array([0], dtype=int)
+
+    @wp.kernel
+    def randomize_ctrl_kernel(ref_pos: wp.array(dtype=float), step_counter_wp: wp.array(dtype=int), ctrl_per_robot: int, ctrls: wp.array2d(dtype=float)):
+        step = step_counter_wp[0]
+        wid, robot_id, tid = wp.tid()
+        noise = wp.randf(wp.uint32(wid * ctrls.shape[1] + tid + step), -0.025, 0.025)
+        ctrls[wid, robot_id * ctrl_per_robot + tid] = ref_pos[tid] + noise
+
+        if wid == 0 and tid == 0:
+            step_counter_wp[0] = step + 1
+
+    with wp.ScopedCapture(device="cuda") as capture:
+        wp.launch(randomize_ctrl_kernel, dim=(n_envs, n_robots, 7), inputs=[ref_pos_wp, step_counter_wp, actuators_per_robot, d.ctrl], block_dim=32)
+    randomize_graph = capture.graph
+
+
     t0 = time.perf_counter()
     for i in range(benchmark_steps):
         if args.r and i % 2 == 0:
-            noise = np.random.uniform(-0.025, 0.025, (n_envs, 7)).astype(np.float32)
-            for robot_idx in range(n_robots):
-                offset = robot_idx * actuators_per_robot
-                ctrl_array[:, offset : offset + 7] = ref_pos + noise
-        else:
-            for robot_idx in range(n_robots):
-                offset = robot_idx * actuators_per_robot
-                ctrl_array[:, offset : offset + 7] = ref_pos
+            wp.capture_launch(randomize_graph)
 
-        wp.copy(d.ctrl, wp.array(ctrl_array, dtype=wp.float32))
-        mjw.step(m, d)
+        wp.capture_launch(step_graph)
 
         if args.v:
             mjd_cpu.qpos[:] = d.qpos.numpy()[0]
