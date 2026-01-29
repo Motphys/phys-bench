@@ -95,9 +95,10 @@ def detect_hardware_type(dir_name: str) -> str:
 
 # Engine to hardware type mapping
 ENGINE_HARDWARE_MAPPING = {
-    "genesis": "gpu",      # Genesis engine runs on GPU
-    "motrix": "cpu",       # Motrix engine runs on CPU
-    "mujoco": "cpu",       # MuJoCo engine runs on CPU
+    "genesis": "gpu",       # Genesis engine runs on GPU
+    "mujoco_warp": "gpu",   # MuJoCo-Warp engine runs on GPU
+    "motrix": "cpu",        # Motrix engine runs on CPU
+    "mujoco": "cpu",        # MuJoCo engine runs on CPU
 }
 
 
@@ -503,7 +504,7 @@ def _get_by_n_charts_html(grouped: Dict, chart_configs: list, hardware_type: str
         labels = sorted(b_data.keys())
 
         # Filter engines based on hardware type
-        engines_to_show = [e for e in ["motrix", "mujoco", "genesis"]
+        engines_to_show = [e for e in ["motrix", "mujoco", "mujoco_warp", "genesis"]
                           if get_expected_hardware_type(e) == hardware_type]
 
         # Generate data for each allowed engine
@@ -525,7 +526,7 @@ def _get_by_n_charts_html(grouped: Dict, chart_configs: list, hardware_type: str
 
         chart_id = f"chart-n{n}"
         datasets = []
-        colors = {"motrix": "#3b82f6", "mujoco": "#ef4444", "genesis": "#22c55e"}
+        colors = {"motrix": "#3b82f6", "mujoco": "#ef4444", "mujoco_warp": "#8b5cf6", "genesis": "#22c55e"}
 
         for engine in active_engines:
             datasets.append({
@@ -571,7 +572,7 @@ def _get_by_b_charts_html(grouped: Dict, chart_configs: list, hardware_type: str
         labels = sorted(n_data.keys())
 
         # Filter engines based on hardware type
-        engines_to_show = [e for e in ["motrix", "mujoco", "genesis"]
+        engines_to_show = [e for e in ["motrix", "mujoco", "mujoco_warp", "genesis"]
                           if get_expected_hardware_type(e) == hardware_type]
 
         # Generate data for each allowed engine
@@ -593,7 +594,7 @@ def _get_by_b_charts_html(grouped: Dict, chart_configs: list, hardware_type: str
 
         chart_id = f"chart-b{b}"
         datasets = []
-        colors = {"motrix": "#3b82f6", "mujoco": "#ef4444", "genesis": "#22c55e"}
+        colors = {"motrix": "#3b82f6", "mujoco": "#ef4444", "mujoco_warp": "#8b5cf6", "genesis": "#22c55e"}
 
         for engine in active_engines:
             datasets.append({

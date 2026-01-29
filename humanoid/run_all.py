@@ -211,8 +211,8 @@ def main():
     parser.add_argument(
         "--engines",
         nargs="+",
-        default=["motrix", "mujoco", "genesis"],
-        choices=["motrix", "mujoco", "genesis"],
+        default=["motrix", "mujoco", "mujoco_warp", "genesis"],
+        choices=["motrix", "mujoco", "mujoco_warp", "genesis"],
         help="Engines to test",
     )
     parser.add_argument(
@@ -258,8 +258,26 @@ def main():
     engine_configs = {
         "motrix": ("uv run humanoid/motrix_humanoid.py", "Motrix"),
         "mujoco": ("uv run humanoid/mujoco_humanoid.py", "MuJoCo"),
+        "mujoco_warp": ("uv run humanoid/mujoco_warp_humanoid.py", "MuJoCo-Warp"),
         "genesis": ("uv run humanoid/genesis_humanoid.py", "Genesis"),
     }
+
+    # Define engine-specific batch size configurations
+    engine_batch_configs = {
+        "genesis": {
+            1: [1, 512, 2048, 4096, 8192],  # N=1
+            5: [1, 512, 1024],              # N=5
+            10: [1, 128, 512],              # N=10
+        },
+        "mujoco_warp": {
+            1: [1, 512, 2048, 4096, 8192],  # N=1
+            5: [1, 512, 1024],              # N=5
+            10: [1, 128, 512],              # N=10
+        },
+    }
+
+    # Track all batch sizes used for summary tables
+    all_batches_per_engine = {}
 
     # Run tests for all combinations
     for engine in args.engines:
@@ -268,47 +286,99 @@ def main():
         print(f"ENGINE: {engine_name.upper()}")
         print(f"{'=' * 80}")
 
-        for b in args.batches:
-            # Determine N values for this B
-            n_values = args.robots.copy()
-            if b == 1 and engine != "genesis":
-                n_values.append(50)  # Add N=50 for single environment (skip for genesis)
+        # Determine batch sizes for this engine
+        if engine in engine_batch_configs:
+            # Use engine-specific batch sizes per N value
+            for n in args.robots:
+                batches_for_n = engine_batch_configs[engine].get(n, [1])
+                for b in batches_for_n:
+                    # Track batch sizes for summary tables
+                    if engine not in all_batches_per_engine:
+                        all_batches_per_engine[engine] = set()
+                    all_batches_per_engine[engine].add(b)
 
-            for n in n_values:
-                # For mujoco, add threading when B > 1
-                if engine == "mujoco" and b > 1:
-                    cmd = f"{cmd_prefix} -N {n} -B {b} -T {cpu_cores}"
-                    t = cpu_cores
-                elif engine == "genesis":
-                    # Genesis doesn't need thread parameter (GPU parallel)
-                    cmd = f"{cmd_prefix} -N {n} -B {b}"
-                    t = 1
-                else:
-                    cmd = f"{cmd_prefix} -N {n} -B {b}"
-                    t = 1
+                    # For mujoco, add threading when B > 1
+                    if engine == "mujoco" and b > 1:
+                        cmd = f"{cmd_prefix} -N {n} -B {b} -T {cpu_cores}"
+                        t = cpu_cores
+                    elif engine == "genesis":
+                        # Genesis doesn't need thread parameter (GPU parallel)
+                        cmd = f"{cmd_prefix} -N {n} -B {b}"
+                        t = 1
+                    else:
+                        cmd = f"{cmd_prefix} -N {n} -B {b}"
+                        t = 1
 
-                desc = f"{engine_name} - n_humanoids={n}, n_envs={b}"
-                per_env, total, error_info = run_test(cmd, desc)
+                    desc = f"{engine_name} - n_humanoids={n}, n_envs={b}"
+                    per_env, total, error_info = run_test(cmd, desc)
 
-                key = f"{engine}_n{n}_b{b}"
-                results[key] = {
-                    "engine": engine,
-                    "engine_name": engine_name,
-                    "per_env": per_env,
-                    "total": total,
-                    "n": n,
-                    "b": b,
-                    "t": t,
-                    "error_info": error_info,
-                }
+                    key = f"{engine}_n{n}_b{b}"
+                    results[key] = {
+                        "engine": engine,
+                        "engine_name": engine_name,
+                        "per_env": per_env,
+                        "total": total,
+                        "n": n,
+                        "b": b,
+                        "t": t,
+                        "error_info": error_info,
+                    }
 
-                # Save result to JSON (always save, even on error)
-                # Use GPU model directory for Genesis, CPU model for others
-                if engine == "genesis":
-                    engine_output_dir = os.path.join(args.output_dir, gpu_model)
-                else:
-                    engine_output_dir = os.path.join(args.output_dir, cpu_model)
-                save_result(engine_output_dir, engine, n, b, t, per_env, total, error_info)
+                    # Save result to JSON (always save, even on error)
+                    # Use GPU model directory for Genesis and MuJoCo-Warp, CPU model for others
+                    if engine in ["genesis", "mujoco_warp"]:
+                        engine_output_dir = os.path.join(args.output_dir, gpu_model)
+                    else:
+                        engine_output_dir = os.path.join(args.output_dir, cpu_model)
+                    save_result(engine_output_dir, engine, n, b, t, per_env, total, error_info)
+        else:
+            # Use default batch sizes for other engines (motrix, mujoco)
+            for b in args.batches:
+                # Determine N values for this B
+                n_values = args.robots.copy()
+                if b == 1:
+                    n_values.append(50)  # Add N=50 for single environment
+
+                # Track batch sizes for summary tables
+                if engine not in all_batches_per_engine:
+                    all_batches_per_engine[engine] = set()
+                all_batches_per_engine[engine].add(b)
+
+                for n in n_values:
+                    # For mujoco, add threading when B > 1
+                    if engine == "mujoco" and b > 1:
+                        cmd = f"{cmd_prefix} -N {n} -B {b} -T {cpu_cores}"
+                        t = cpu_cores
+                    elif engine == "genesis":
+                        # Genesis doesn't need thread parameter (GPU parallel)
+                        cmd = f"{cmd_prefix} -N {n} -B {b}"
+                        t = 1
+                    else:
+                        cmd = f"{cmd_prefix} -N {n} -B {b}"
+                        t = 1
+
+                    desc = f"{engine_name} - n_humanoids={n}, n_envs={b}"
+                    per_env, total, error_info = run_test(cmd, desc)
+
+                    key = f"{engine}_n{n}_b{b}"
+                    results[key] = {
+                        "engine": engine,
+                        "engine_name": engine_name,
+                        "per_env": per_env,
+                        "total": total,
+                        "n": n,
+                        "b": b,
+                        "t": t,
+                        "error_info": error_info,
+                    }
+
+                    # Save result to JSON (always save, even on error)
+                    # Use GPU model directory for Genesis and MuJoCo-Warp, CPU model for others
+                    if engine in ["genesis", "mujoco_warp"]:
+                        engine_output_dir = os.path.join(args.output_dir, gpu_model)
+                    else:
+                        engine_output_dir = os.path.join(args.output_dir, cpu_model)
+                    save_result(engine_output_dir, engine, n, b, t, per_env, total, error_info)
 
     # Print summary tables
     print("\n\n" + "=" * 120)
@@ -318,7 +388,12 @@ def main():
     # Get all unique N values from results, sorted
     all_n_values = sorted(set(results[key].get("n") for key in results if "n" in results[key]))
 
-    for b in args.batches:
+    # Collect all unique batch sizes across all engines
+    all_batches = sorted(set(
+        b for engine_batches in all_batches_per_engine.values() for b in engine_batches
+    ))
+
+    for b in all_batches:
         print(f"\n{'=' * 120}")
         print(f"n_envs={b}")
         print(f"{'=' * 120}")
@@ -344,7 +419,7 @@ def main():
     print("THROUGHPUT COMPARISON (Total FPS)")
     print("=" * 120)
 
-    for b in args.batches:
+    for b in all_batches:
         print(f"\n{'=' * 60}")
         print(f"n_envs={b}")
         print(f"{'=' * 60}")

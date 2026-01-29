@@ -1,0 +1,10 @@
+{
+  "engine": "mujoco_warp",
+  "N": 50,
+  "B": 1,
+  "T": 1,
+  "per_env_fps": 1.71,
+  "total_fps": 1.71,
+  "timestamp": "2026-01-29T12:44:03.834097",
+  "status": "success"
+}
