@@ -1,0 +1,12 @@
+{
+  "engine": "mujoco_warp",
+  "N": 50,
+  "B": 1,
+  "T": 1,
+  "per_env_fps": 0.0,
+  "total_fps": 0.0,
+  "timestamp": "2026-01-29T11:29:39.719947",
+  "status": "error",
+  "error_code": "CRASH_ERROR",
+  "error_message": "Process exited with code 1"
+}
