@@ -1,0 +1,12 @@
+{
+  "engine": "genesis",
+  "N": 10,
+  "B": 1,
+  "T": 1,
+  "per_env_fps": 0.0,
+  "total_fps": 0.0,
+  "timestamp": "2026-01-29T00:19:25.769128",
+  "status": "error",
+  "error_code": "CRASH_ERROR",
+  "error_message": "Process exited with code 1"
+}

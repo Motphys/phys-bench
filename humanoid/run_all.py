@@ -38,6 +38,63 @@ def get_cpu_model():
     return cpu_model if cpu_model else "Unknown"
 
 
+def get_gpu_model():
+    """Get GPU model name, sanitized for directory names"""
+    gpu_model = "Unknown"
+
+    try:
+        import subprocess
+
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            # Get first GPU name if multiple GPUs
+            gpu_model = result.stdout.strip().split("\n")[0].strip()
+    except Exception:
+        gpu_model = "Unknown"
+
+    # Sanitize for directory name: replace special chars with underscores
+    gpu_model = re.sub(r"[^\w\s-]", "_", gpu_model)  # Replace special chars
+    gpu_model = re.sub(r"[\s]+", "_", gpu_model)  # Replace spaces with underscores
+    gpu_model = gpu_model.strip("_")
+
+    return gpu_model if gpu_model else "Unknown"
+
+
+def detect_error_patterns(output):
+    """Detect known error patterns in benchmark output.
+
+    Args:
+        output: Combined stdout+stderr from subprocess
+
+    Returns:
+        (error_code, error_message) tuple, or (None, None) if no errors detected
+    """
+    output_upper = output.upper()
+
+    # CUDA memory errors
+    if 'CUDA_ERROR_OUT_OF_MEMORY' in output_upper or 'OUT OF MEMORY' in output_upper:
+        return 'CUDA_OOM', 'CUDA out of memory'
+
+    # Genesis Jacobian errors
+    if 'JACOBIAN SHAPE' in output_upper and 'TOO LARGE' in output_upper:
+        return 'JACOBIAN_ERROR', 'Jacobian shape too large for this configuration'
+
+    # General Genesis errors
+    if 'GenesisException' in output or '[Genesis] [ERROR]' in output:
+        return 'GENESIS_ERROR', 'Genesis engine error'
+
+    # General CUDA errors
+    if 'CUDA_ERROR' in output_upper:
+        return 'CUDA_ERROR', 'CUDA error occurred'
+
+    return None, None
+
+
 def run_test(cmd, description):
     """Run a test command and extract FPS results using regex"""
     print(f"\n{'=' * 60}")
@@ -51,6 +108,51 @@ def run_test(cmd, description):
 
         output = result.stdout + result.stderr
 
+        # Check if process exited with error (crash without JSON output)
+        if result.returncode != 0:
+            # Process crashed but didn't output JSON error
+            # Try to detect error patterns
+            error_code, error_message = detect_error_patterns(output)
+            if not error_code:
+                # Generic error if no pattern matched
+                error_code = "CRASH_ERROR"
+                error_message = f"Process exited with code {result.returncode}"
+
+            print(f"✗ Error: {error_code}")
+            print(f"  Message: {error_message}")
+            return 0.0, 0.0, {"error_code": error_code, "error_message": error_message}
+
+        # Check for JSON error output first
+        json_match = re.search(r'\{[^{}]*"status"\s*:\s*"error"[^{}]*\}', output)
+        if json_match:
+            try:
+                error_info = json.loads(json_match.group(0))
+                print(f"✗ Error: {error_info.get('error_code', 'UNKNOWN')}")
+                print(f"  Message: {error_info.get('error_message', '')}")
+                return 0.0, 0.0, error_info
+            except json.JSONDecodeError:
+                pass
+
+        # Check for known error patterns (crashes without JSON output)
+        error_code, error_message = detect_error_patterns(output)
+        if error_code:
+            print(f"✗ Error: {error_code}")
+            print(f"  Message: {error_message}")
+            # Try to extract more details from output
+            if 'out of memory' in output.lower():
+                # Extract CUDA OOM details
+                oom_match = re.search(r'CUDA_ERROR_OUT_OF_MEMORY:\s*([^\n]+)', output)
+                if oom_match:
+                    error_message = oom_match.group(1).strip()
+            elif 'jacobian' in output.lower():
+                # Extract Jacobian error details
+                jacobian_match = re.search(r'Jacobian shape\s*\([^\)]+\)\s*is\s*([^\n]+)', output)
+                if jacobian_match:
+                    error_message = f"Jacobian shape {jacobian_match.group(1).strip()}"
+
+            error_info = {"error_code": error_code, "error_message": error_message}
+            return 0.0, 0.0, error_info
+
         # Extract FPS from output
         per_env_match = re.search(r"per env:\s*([\d,]+\.?\d*)\s*FPS", output)
         total_match = re.search(r"total\s*:\s*([\d,]+\.?\d*)\s*FPS", output)
@@ -60,21 +162,21 @@ def run_test(cmd, description):
             total_fps = total_match.group(1).replace(",", "")
             print(f"✓ per env: {per_env_fps} FPS")
             print(f"✓ total  : {total_fps} FPS")
-            return float(per_env_fps), float(total_fps)
+            return float(per_env_fps), float(total_fps), None
         else:
             print(f"✗ Failed to extract FPS")
             print(f"Output: {output[-500:]}")  # Print last 500 chars for debugging
-            return None, None
+            return None, None, None
 
     except subprocess.TimeoutExpired:
-        print(f"✗ Timeout (300s)")
-        return None, None
+        print(f"✗ Timeout (1000s)")
+        return None, None, {"error_code": "TIMEOUT", "error_message": "Test exceeded 1000s timeout"}
     except Exception as e:
         print(f"✗ Error: {e}")
-        return None, None
+        return None, None, {"error_code": "RUNNER_ERROR", "error_message": str(e)}
 
 
-def save_result(output_dir, engine, n, b, t, per_env_fps, total_fps):
+def save_result(output_dir, engine, n, b, t, per_env_fps, total_fps, error_info=None):
     """Save result to JSON file"""
     os.makedirs(output_dir, exist_ok=True)
 
@@ -83,10 +185,17 @@ def save_result(output_dir, engine, n, b, t, per_env_fps, total_fps):
         "N": n,
         "B": b,
         "T": t,
-        "per_env_fps": per_env_fps,
-        "total_fps": total_fps,
+        "per_env_fps": per_env_fps if per_env_fps is not None else 0.0,
+        "total_fps": total_fps if total_fps is not None else 0.0,
         "timestamp": datetime.now().isoformat(),
     }
+
+    if error_info:
+        result["status"] = "error"
+        result["error_code"] = error_info.get("error_code", "UNKNOWN")
+        result["error_message"] = error_info.get("error_message", "")
+    else:
+        result["status"] = "success"
 
     filename = f"{output_dir}/{engine}_N{n}_B{b}.json"
     with open(filename, "w") as f:
@@ -102,8 +211,8 @@ def main():
     parser.add_argument(
         "--engines",
         nargs="+",
-        default=["motrix", "mujoco"],
-        choices=["motrix", "mujoco"],
+        default=["motrix", "mujoco", "genesis"],
+        choices=["motrix", "mujoco", "genesis"],
         help="Engines to test",
     )
     parser.add_argument(
@@ -123,27 +232,33 @@ def main():
     # Get CPU core count
     cpu_cores = os.cpu_count() or 12
 
-    # Get CPU model for subdirectory
+    # Get CPU and GPU models for subdirectories
     cpu_model = get_cpu_model()
-    output_dir = os.path.join(args.output_dir, cpu_model)
+    gpu_model = get_gpu_model()
 
     print("""
 ╔══════════════════════════════════════════════════════════════╗
 ║              Humanoid Benchmark Suite                       ║
-║         Motrix / MuJoCo with Multi-threading                 ║
+║       Motrix / MuJoCo (CPU) / Genesis (GPU)                  ║
 ╚══════════════════════════════════════════════════════════════╝
     """)
     print(f"CPU Model: {cpu_model}")
     print(f"CPU cores: {cpu_cores} (for MuJoCo B>1)")
+    print(f"GPU Model: {gpu_model} (for Genesis)")
     print(f"Engines: {', '.join(args.engines)}")
     print(f"n_humanoids: {args.robots}")
     print(f"n_envs: {args.batches}")
-    print(f"Output directory: {output_dir}")
+    cpu_output_dir = os.path.join(args.output_dir, cpu_model)
+    gpu_output_dir = os.path.join(args.output_dir, gpu_model)
+    print(f"Output directories:")
+    print(f"  CPU engines: {cpu_output_dir}")
+    print(f"  GPU engines: {gpu_output_dir}")
 
     results = {}
     engine_configs = {
         "motrix": ("uv run humanoid/motrix_humanoid.py", "Motrix"),
         "mujoco": ("uv run humanoid/mujoco_humanoid.py", "MuJoCo"),
+        "genesis": ("uv run humanoid/genesis_humanoid.py", "Genesis"),
     }
 
     # Run tests for all combinations
@@ -156,20 +271,24 @@ def main():
         for b in args.batches:
             # Determine N values for this B
             n_values = args.robots.copy()
-            if b == 1:
-                n_values.append(50)  # Add N=50 for single environment
+            if b == 1 and engine != "genesis":
+                n_values.append(50)  # Add N=50 for single environment (skip for genesis)
 
             for n in n_values:
                 # For mujoco, add threading when B > 1
                 if engine == "mujoco" and b > 1:
                     cmd = f"{cmd_prefix} -N {n} -B {b} -T {cpu_cores}"
                     t = cpu_cores
+                elif engine == "genesis":
+                    # Genesis doesn't need thread parameter (GPU parallel)
+                    cmd = f"{cmd_prefix} -N {n} -B {b}"
+                    t = 1
                 else:
                     cmd = f"{cmd_prefix} -N {n} -B {b}"
                     t = 1
 
                 desc = f"{engine_name} - n_humanoids={n}, n_envs={b}"
-                per_env, total = run_test(cmd, desc)
+                per_env, total, error_info = run_test(cmd, desc)
 
                 key = f"{engine}_n{n}_b{b}"
                 results[key] = {
@@ -180,11 +299,16 @@ def main():
                     "n": n,
                     "b": b,
                     "t": t,
+                    "error_info": error_info,
                 }
 
-                # Save result to JSON
-                if per_env is not None and total is not None:
-                    save_result(output_dir, engine, n, b, t, per_env, total)
+                # Save result to JSON (always save, even on error)
+                # Use GPU model directory for Genesis, CPU model for others
+                if engine == "genesis":
+                    engine_output_dir = os.path.join(args.output_dir, gpu_model)
+                else:
+                    engine_output_dir = os.path.join(args.output_dir, cpu_model)
+                save_result(engine_output_dir, engine, n, b, t, per_env, total, error_info)
 
     # Print summary tables
     print("\n\n" + "=" * 120)
@@ -236,7 +360,21 @@ def main():
     print("\n" + "=" * 120)
     print("BENCHMARK COMPLETE")
     print("=" * 120)
-    print(f"\nResults saved to {output_dir}/")
+    print(f"\nResults saved to:")
+    print(f"  CPU engines: {cpu_output_dir}/")
+    print(f"  GPU engines: {gpu_output_dir}/")
+
+    # Generate HTML report
+    print("\n" + "=" * 120)
+    print("GENERATING HTML REPORT")
+    print("=" * 120)
+
+    try:
+        from report_utils import generate_html_report
+        generate_html_report()
+        print(f"\n✓ HTML report generated: output/humanoid/comparison_report.html")
+    except Exception as e:
+        print(f"\n✗ Failed to generate HTML report: {e}")
 
 
 if __name__ == "__main__":

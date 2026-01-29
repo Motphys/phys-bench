@@ -1,0 +1,10 @@
+{
+  "engine": "genesis",
+  "N": 5,
+  "B": 1,
+  "T": 1,
+  "per_env_fps": 9.64,
+  "total_fps": 9.64,
+  "timestamp": "2026-01-29T00:19:03.921691",
+  "status": "success"
+}

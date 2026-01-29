@@ -68,6 +68,72 @@ def detect_all_cpu_model_dirs(results_dir: Path) -> List[str]:
     return [d.name for d in subdirs]
 
 
+def detect_hardware_type(dir_name: str) -> str:
+    """检测硬件目录是CPU还是GPU。
+
+    Args:
+        dir_name: 硬件目录名称
+
+    Returns:
+        "cpu" 或 "gpu"
+    """
+    dir_name_lower = dir_name.lower()
+
+    # GPU指示符（优先检测，因为更具体）
+    gpu_patterns = ['nvidia', 'geforce', 'radeon', 'gpu', 'graphics', 'rtx', 'gtx', 'arc']
+    if any(pattern in dir_name_lower for pattern in gpu_patterns):
+        return "gpu"
+
+    # CPU指示符
+    cpu_patterns = ['intel', 'amd', 'cpu', 'processor', 'ryzen', 'core', 'xeon']
+    if any(pattern in dir_name_lower for pattern in cpu_patterns):
+        return "cpu"
+
+    # 默认为CPU
+    return "cpu"
+
+
+# Engine to hardware type mapping
+ENGINE_HARDWARE_MAPPING = {
+    "genesis": "gpu",      # Genesis engine runs on GPU
+    "motrix": "cpu",       # Motrix engine runs on CPU
+    "mujoco": "cpu",       # MuJoCo engine runs on CPU
+}
+
+
+def get_expected_hardware_type(engine: str) -> Optional[str]:
+    """Get the expected hardware type for a given engine.
+
+    Args:
+        engine: Engine name (e.g., "genesis", "motrix", "mujoco")
+
+    Returns:
+        "cpu", "gpu", or None if engine is not defined
+    """
+    return ENGINE_HARDWARE_MAPPING.get(engine.lower())
+
+
+def format_hardware_name(dir_name: str, hardware_type: str = None) -> str:
+    """将硬件目录名称转换为友好的显示名称，带硬件类型标识。
+
+    Args:
+        dir_name: 硬件目录名称
+        hardware_type: "cpu" 或 "gpu"（如果为None则自动检测）
+
+    Returns:
+        带类型标识的格式化名称（例如："[CPU] Intel Core i5"）
+    """
+    if hardware_type is None:
+        hardware_type = detect_hardware_type(dir_name)
+
+    # 格式化基础名称
+    formatted = dir_name.replace('_', ' ').replace('  ', ' ').strip()
+
+    # 添加类型标识
+    type_badge = "[CPU]" if hardware_type == "cpu" else "[GPU]"
+    return f"{type_badge} {formatted}"
+
+
 def format_cpu_name(cpu_dir_name: str) -> str:
     """Convert CPU directory name to friendly display name.
 
@@ -76,10 +142,11 @@ def format_cpu_name(cpu_dir_name: str) -> str:
 
     Returns:
         Formatted CPU name (e.g., "Intel R Core TM i5-10600KF CPU 4 10GHz")
+
+    Note:
+        This function is kept for backward compatibility and now delegates to format_hardware_name.
     """
-    # Replace underscores with spaces and clean up excess whitespace
-    formatted = cpu_dir_name.replace('_', ' ').replace('  ', ' ').strip()
-    return formatted
+    return format_hardware_name(cpu_dir_name, "cpu")
 
 
 def parse_result_filename(filename: str) -> Optional[Dict[str, any]]:
@@ -146,9 +213,41 @@ def load_json_results(results_dir: Path, cpu_model: Optional[str] = None) -> Lis
             "per_env_fps": data.get("per_env_fps", 0.0),
             "total_fps": data.get("total_fps", 0.0),
             "timestamp": data.get("timestamp", ""),
+            "status": data.get("status", "success"),
+            "error_code": data.get("error_code", ""),
+            "error_message": data.get("error_message", ""),
         })
 
     return results
+
+
+def _load_single_result(json_file: Path, parsed: Dict) -> List[Dict]:
+    """Load a single JSON result file.
+
+    Args:
+        json_file: Path to JSON file
+        parsed: Parsed information from filename
+
+    Returns:
+        List containing a single result dict, or empty list if loading fails
+    """
+    try:
+        with open(json_file, "r") as f:
+            data = json.load(f)
+
+        return [{
+            **parsed,
+            "T": data.get("T", 1),
+            "per_env_fps": data.get("per_env_fps", 0.0),
+            "total_fps": data.get("total_fps", 0.0),
+            "timestamp": data.get("timestamp", ""),
+            "status": data.get("status", "success"),
+            "error_code": data.get("error_code", ""),
+            "error_message": data.get("error_message", ""),
+        }]
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"Warning: Skipping corrupted file {json_file}: {e}")
+        return []
 
 
 def load_all_cpu_results(results_dir: Path) -> Dict[str, List[Dict]]:
@@ -169,28 +268,30 @@ def load_all_cpu_results(results_dir: Path) -> Dict[str, List[Dict]]:
         if not cpu_data_dir.exists():
             continue
 
+        # Detect hardware type for this directory
+        hardware_type = detect_hardware_type(cpu_dir_name)
+
         results = []
         for json_file in cpu_data_dir.glob("*.json"):
             parsed = parse_result_filename(json_file.name)
             if not parsed:
                 continue
 
-            try:
-                with open(json_file, "r") as f:
-                    data = json.load(f)
+            # Check if engine matches the current hardware type
+            engine = parsed["engine"]
+            expected_hardware = get_expected_hardware_type(engine)
 
-                # Merge parsed filename data with JSON content
-                results.append({
-                    **parsed,
-                    "T": data.get("T", 1),
-                    "per_env_fps": data.get("per_env_fps", 0.0),
-                    "total_fps": data.get("total_fps", 0.0),
-                    "timestamp": data.get("timestamp", ""),
-                })
-            except (json.JSONDecodeError, IOError) as e:
-                # Skip corrupted files and continue
-                print(f"Warning: Skipping corrupted file {json_file}: {e}")
+            if expected_hardware is None:
+                # Undefined engine, keep the data (backward compatibility)
+                results.extend(_load_single_result(json_file, parsed))
+            elif expected_hardware != hardware_type:
+                # Engine doesn't match hardware type, show warning and skip
+                print(f"Warning: Engine '{engine}' (expected on {expected_hardware}) "
+                      f"found in {hardware_type.upper()} hardware directory '{cpu_dir_name}'. Skipping.")
                 continue
+            else:
+                # Engine matches hardware type, load the data
+                results.extend(_load_single_result(json_file, parsed))
 
         if results:
             all_results[cpu_dir_name] = results
@@ -384,8 +485,14 @@ def _get_chart_config(chart_id: str, title: str, labels: List[str],
     }}"""
 
 
-def _get_by_n_charts_html(grouped: Dict, chart_configs: list) -> str:
-    """Generate HTML for charts grouped by humanoid count (N)."""
+def _get_by_n_charts_html(grouped: Dict, chart_configs: list, hardware_type: str = "cpu") -> str:
+    """Generate HTML for charts grouped by humanoid count (N).
+
+    Args:
+        grouped: Grouped data by dimensions
+        chart_configs: List to collect chart configurations
+        hardware_type: "cpu" or "gpu" to filter which engines to show
+    """
     html = '<section class="charts-section" id="by-n"><h2>Performance by Humanoid Count (N)</h2>'
 
     for n in sorted(grouped["by_N"].keys()):
@@ -394,31 +501,44 @@ def _get_by_n_charts_html(grouped: Dict, chart_configs: list) -> str:
             continue
 
         labels = sorted(b_data.keys())
-        motrix_data = []
-        mujoco_data = []
+
+        # Filter engines based on hardware type
+        engines_to_show = [e for e in ["motrix", "mujoco", "genesis"]
+                          if get_expected_hardware_type(e) == hardware_type]
+
+        # Generate data for each allowed engine
+        engine_data = {engine: [] for engine in engines_to_show}
 
         for b in labels:
             engines = b_data[b]
-            motrix_data.append(engines.get("motrix", {}).get("total_fps", 0))
-            mujoco_data.append(engines.get("mujoco", {}).get("total_fps", 0))
+            for engine in engines_to_show:
+                engine_data[engine].append(
+                    engines.get(engine, {}).get("total_fps", 0)
+                )
+
+        # Only show engines that have data
+        active_engines = [e for e in engines_to_show
+                         if any(v > 0 for v in engine_data[e])]
+
+        if not active_engines:
+            continue  # No matching engine data
 
         chart_id = f"chart-n{n}"
+        datasets = []
+        colors = {"motrix": "#3b82f6", "mujoco": "#ef4444", "genesis": "#22c55e"}
+
+        for engine in active_engines:
+            datasets.append({
+                "label": engine.capitalize(),
+                "data": engine_data[engine],
+                "backgroundColor": colors.get(engine, "#6b7280"),
+            })
+
         chart_config = _get_chart_config(
             chart_id=chart_id,
             title=f"N={n} Humanoids - Total FPS",
             labels=[f"B={b}" for b in labels],
-            datasets=[
-                {
-                    "label": "Motrix",
-                    "data": motrix_data,
-                    "backgroundColor": "#3b82f6",
-                },
-                {
-                    "label": "MuJoCo",
-                    "data": mujoco_data,
-                    "backgroundColor": "#ef4444",
-                },
-            ],
+            datasets=datasets,
             y_label="FPS (total)"
         )
         chart_configs.append(chart_config)
@@ -433,8 +553,14 @@ def _get_by_n_charts_html(grouped: Dict, chart_configs: list) -> str:
     return html
 
 
-def _get_by_b_charts_html(grouped: Dict, chart_configs: list) -> str:
-    """Generate HTML for charts grouped by batch size (B)."""
+def _get_by_b_charts_html(grouped: Dict, chart_configs: list, hardware_type: str = "cpu") -> str:
+    """Generate HTML for charts grouped by batch size (B).
+
+    Args:
+        grouped: Grouped data by dimensions
+        chart_configs: List to collect chart configurations
+        hardware_type: "cpu" or "gpu" to filter which engines to show
+    """
     html = '<section class="charts-section" id="by-b"><h2>Performance by Batch Size (B)</h2>'
 
     for b in sorted(grouped["by_B"].keys()):
@@ -443,31 +569,44 @@ def _get_by_b_charts_html(grouped: Dict, chart_configs: list) -> str:
             continue
 
         labels = sorted(n_data.keys())
-        motrix_data = []
-        mujoco_data = []
+
+        # Filter engines based on hardware type
+        engines_to_show = [e for e in ["motrix", "mujoco", "genesis"]
+                          if get_expected_hardware_type(e) == hardware_type]
+
+        # Generate data for each allowed engine
+        engine_data = {engine: [] for engine in engines_to_show}
 
         for n in labels:
             engines = n_data[n]
-            motrix_data.append(engines.get("motrix", {}).get("total_fps", 0))
-            mujoco_data.append(engines.get("mujoco", {}).get("total_fps", 0))
+            for engine in engines_to_show:
+                engine_data[engine].append(
+                    engines.get(engine, {}).get("total_fps", 0)
+                )
+
+        # Only show engines that have data
+        active_engines = [e for e in engines_to_show
+                         if any(v > 0 for v in engine_data[e])]
+
+        if not active_engines:
+            continue  # No matching engine data
 
         chart_id = f"chart-b{b}"
+        datasets = []
+        colors = {"motrix": "#3b82f6", "mujoco": "#ef4444", "genesis": "#22c55e"}
+
+        for engine in active_engines:
+            datasets.append({
+                "label": engine.capitalize(),
+                "data": engine_data[engine],
+                "backgroundColor": colors.get(engine, "#6b7280"),
+            })
+
         chart_config = _get_chart_config(
             chart_id=chart_id,
             title=f"B={b} Batch Size - Total FPS",
             labels=[f"N={n}" for n in labels],
-            datasets=[
-                {
-                    "label": "Motrix",
-                    "data": motrix_data,
-                    "backgroundColor": "#3b82f6",
-                },
-                {
-                    "label": "MuJoCo",
-                    "data": mujoco_data,
-                    "backgroundColor": "#ef4444",
-                },
-            ],
+            datasets=datasets,
             y_label="FPS (total)"
         )
         chart_configs.append(chart_config)
@@ -595,6 +734,11 @@ def _get_detailed_table_html(results: List[Dict]) -> str:
         <label>Filter by B: <select id="filter-b">
             <option value="all">All</option>
         </select></label>
+        <label>Filter by Status: <select id="filter-status">
+            <option value="all">All</option>
+            <option value="success">Success</option>
+            <option value="error">Error</option>
+        </select></label>
     </div>
     <div class="table-wrapper">
         <table class="detailed-table" id="detailed-table">
@@ -603,6 +747,7 @@ def _get_detailed_table_html(results: List[Dict]) -> str:
                     <th>Engine</th>
                     <th>N (Humanoids)</th>
                     <th>B (Batch)</th>
+                    <th>Status</th>
                     <th>Total FPS</th>
                 </tr>
             </thead>
@@ -613,11 +758,25 @@ def _get_detailed_table_html(results: List[Dict]) -> str:
     sorted_results = sorted(results, key=lambda r: (r["engine"], r["N"], r["B"]))
 
     for r in sorted_results:
+        status = r.get("status", "success")
+        error_code = r.get("error_code", "")
+        error_message = r.get("error_message", "")
+
+        # Create status badge
+        if status == "success":
+            status_badge = '<span class="status-badge status-success">Success</span>'
+        else:
+            status_badge = f'<span class="status-badge status-error" title="{error_message}">{error_code}</span>'
+
+        # Set row data attribute for filtering
+        row_status_attr = f' data-status="{status}"'
+
         html += f"""
-                <tr data-n="{r["N"]}" data-b="{r["B"]}">
+                <tr data-n="{r["N"]}" data-b="{r["B"]}"{row_status_attr}>
                     <td>{r["engine"]}</td>
                     <td>{r["N"]}</td>
                     <td>{r["B"]}</td>
+                    <td>{status_badge}</td>
                     <td>{r["total_fps"]:,.2f}</td>
                 </tr>
         """
@@ -672,8 +831,8 @@ def _get_css_styles() -> str:
             margin-top: 0.25rem;
         }
 
-        /* CPU Tabs */
-        .cpu-tabs {
+        /* Hardware Tabs */
+        .hardware-tabs {
             background: var(--card-bg);
             padding: 1rem 2rem;
             border-bottom: 1px solid var(--border);
@@ -684,7 +843,7 @@ def _get_css_styles() -> str:
             top: 72px;
             z-index: 100;
         }
-        .cpu-tab {
+        .hardware-tab {
             padding: 0.5rem 1.5rem;
             border: 1px solid var(--border);
             border-radius: 20px;
@@ -694,13 +853,23 @@ def _get_css_styles() -> str:
             white-space: nowrap;
             font-weight: 500;
         }
-        .cpu-tab:hover {
-            background: #e2e8f0;
+        /* CPU Tab样式（蓝色系） */
+        .hardware-tab.cpu-tab:hover {
+            background: #dbeafe;
         }
-        .cpu-tab.active {
-            background: var(--success);
+        .hardware-tab.cpu-tab.active {
+            background: #3b82f6;
             color: white;
-            border-color: var(--success);
+            border-color: #3b82f6;
+        }
+        /* GPU Tab样式（绿色系） */
+        .hardware-tab.gpu-tab:hover {
+            background: #dcfce7;
+        }
+        .hardware-tab.gpu-tab.active {
+            background: #22c55e;
+            color: white;
+            border-color: #22c55e;
         }
 
         /* Navigation */
@@ -876,6 +1045,33 @@ def _get_css_styles() -> str:
             background: #f1f5f9;
         }
 
+        /* Status Badges */
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+            cursor: help;
+        }
+
+        /* Error row styling */
+        .detailed-table tr[data-status="error"] {
+            background: #fef2f2 !important;
+        }
+        .detailed-table tr[data-status="error"]:hover {
+            background: #fee2e2 !important;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             header {
@@ -972,8 +1168,9 @@ def _get_html_template(title: str, cpu_model: str, results: List[Dict],
             // Setup filter controls for detailed table
             const nFilter = document.getElementById('filter-n');
             const bFilter = document.getElementById('filter-b');
+            const statusFilter = document.getElementById('filter-status');
 
-            if (nFilter && bFilter) {{
+            if (nFilter && bFilter && statusFilter) {{
                 // Get unique N and B values from table
                 const nValues = [...new Set([...document.querySelectorAll('#detailed-table tbody tr')].map(row => row.dataset.n))].sort((a, b) => parseInt(a) - parseInt(b));
                 const bValues = [...new Set([...document.querySelectorAll('#detailed-table tbody tr')].map(row => row.dataset.b))].sort((a, b) => parseInt(a) - parseInt(b));
@@ -997,20 +1194,24 @@ def _get_html_template(title: str, cpu_model: str, results: List[Dict],
                 function filterTable() {{
                     const selectedN = nFilter.value;
                     const selectedB = bFilter.value;
+                    const selectedStatus = statusFilter.value;
 
                     document.querySelectorAll('#detailed-table tbody tr').forEach(row => {{
                         const rowN = row.dataset.n;
                         const rowB = row.dataset.b;
+                        const rowStatus = row.dataset.status || 'success';
 
                         const showN = selectedN === 'all' || rowN === selectedN;
                         const showB = selectedB === 'all' || rowB === selectedB;
+                        const showStatus = selectedStatus === 'all' || rowStatus === selectedStatus;
 
-                        row.style.display = (showN && showB) ? '' : 'none';
+                        row.style.display = (showN && showB && showStatus) ? '' : 'none';
                     }});
                 }}
 
                 nFilter.addEventListener('change', filterTable);
                 bFilter.addEventListener('change', filterTable);
+                statusFilter.addEventListener('change', filterTable);
             }}
         }});
 
@@ -1101,21 +1302,25 @@ def _get_html_template_multi_cpu(title: str, all_cpu_data: Dict[str, Dict]) -> s
     # Get the first CPU (most recent) for initial display
     first_cpu = list(all_cpu_data.keys())[0]
 
-    # Generate CPU tabs HTML
-    cpu_tabs_html = "        <div class=\"cpu-tabs\">\n"
-    for i, cpu_dir_name in enumerate(all_cpu_data.keys()):
-        formatted_name = format_cpu_name(cpu_dir_name)
+    # 生成硬件tabs HTML
+    hardware_tabs_html = "        <div class=\"hardware-tabs\">\n"
+    for i, hardware_dir_name in enumerate(all_cpu_data.keys()):
+        hardware_type = detect_hardware_type(hardware_dir_name)
+        formatted_name = format_hardware_name(hardware_dir_name, hardware_type)
         is_active = "active" if i == 0 else ""
-        cpu_tabs_html += f"            <button class=\"cpu-tab {is_active}\" data-cpu=\"{cpu_dir_name}\">{formatted_name}</button>\n"
-    cpu_tabs_html += "        </div>\n"
+        hardware_tabs_html += f"            <button class=\"hardware-tab {hardware_type}-tab {is_active}\" data-hardware=\"{hardware_dir_name}\">{formatted_name}</button>\n"
+    hardware_tabs_html += "        </div>\n"
 
     # Build JavaScript data structure for all CPUs
     all_cpu_data_js = {}
     for cpu_dir_name, data in all_cpu_data.items():
-        # Generate chart configs for this CPU
+        # Detect hardware type for this directory
+        hardware_type = detect_hardware_type(cpu_dir_name)
+
+        # Generate chart configs for this CPU with hardware type filtering
         chart_configs = []
-        by_n_html = _get_by_n_charts_html(data["grouped"], chart_configs)
-        by_b_html = _get_by_b_charts_html(data["grouped"], chart_configs)
+        by_n_html = _get_by_n_charts_html(data["grouped"], chart_configs, hardware_type)
+        by_b_html = _get_by_b_charts_html(data["grouped"], chart_configs, hardware_type)
         overview_html = ""
         table_html = _get_detailed_table_html(data["results"])
 
@@ -1150,7 +1355,7 @@ def _get_html_template_multi_cpu(title: str, all_cpu_data: Dict[str, Dict]) -> s
         <div class="subtitle">Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</div>
     </header>
 
-    {cpu_tabs_html}
+    {hardware_tabs_html}
 
     <nav>
         <button class="nav-tab active" data-target="by-n">By Humanoid Count</button>
@@ -1204,8 +1409,9 @@ def _get_html_template_multi_cpu(title: str, all_cpu_data: Dict[str, Dict]) -> s
         function setupTableFilters() {{
             const nFilter = document.getElementById('filter-n');
             const bFilter = document.getElementById('filter-b');
+            const statusFilter = document.getElementById('filter-status');
 
-            if (nFilter && bFilter) {{
+            if (nFilter && bFilter && statusFilter) {{
                 const nValues = [...new Set([...document.querySelectorAll('#detailed-table tbody tr')].map(row => row.dataset.n))].sort((a, b) => parseInt(a) - parseInt(b));
                 const bValues = [...new Set([...document.querySelectorAll('#detailed-table tbody tr')].map(row => row.dataset.b))].sort((a, b) => parseInt(a) - parseInt(b));
 
@@ -1226,34 +1432,38 @@ def _get_html_template_multi_cpu(title: str, all_cpu_data: Dict[str, Dict]) -> s
                 function filterTable() {{
                     const selectedN = nFilter.value;
                     const selectedB = bFilter.value;
+                    const selectedStatus = statusFilter.value;
 
                     document.querySelectorAll('#detailed-table tbody tr').forEach(row => {{
                         const rowN = row.dataset.n;
                         const rowB = row.dataset.b;
+                        const rowStatus = row.dataset.status || 'success';
 
                         const showN = selectedN === 'all' || rowN === selectedN;
                         const showB = selectedB === 'all' || rowB === selectedB;
+                        const showStatus = selectedStatus === 'all' || rowStatus === selectedStatus;
 
-                        row.style.display = (showN && showB) ? '' : 'none';
+                        row.style.display = (showN && showB && showStatus) ? '' : 'none';
                     }});
                 }}
 
                 nFilter.addEventListener('change', filterTable);
                 bFilter.addEventListener('change', filterTable);
+                statusFilter.addEventListener('change', filterTable);
             }}
         }}
 
-        // CPU tab handler
-        document.querySelectorAll('.cpu-tab').forEach(tab => {{
+        // Hardware tab handler
+        document.querySelectorAll('.hardware-tab').forEach(tab => {{
             tab.addEventListener('click', () => {{
-                const selectedCpu = tab.dataset.cpu;
+                const selectedHardware = tab.dataset.hardware;
 
                 // Update active state
-                document.querySelectorAll('.cpu-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.hardware-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
 
                 // Update report
-                updateReport(selectedCpu);
+                updateReport(selectedHardware);
             }});
         }});
 
