@@ -2,8 +2,16 @@
 
 import json
 from pathlib import Path
-from typing import List, Dict
-from bench_output_utils import load_benchmark_results, generate_summary_stats, get_unique_values
+from typing import List, Dict, Optional
+from bench_output_utils import (
+    load_benchmark_results,
+    load_all_hardware_results,
+    generate_summary_stats,
+    get_unique_values,
+    detect_hardware_type,
+    format_hardware_name,
+    SIMULATOR_HARDWARE_MAPPING,
+)
 
 
 # Simulator color scheme for charts
@@ -232,27 +240,46 @@ def generate_html_report(
     if results_dir is None:
         results_dir = Path("output/bench")
 
-    results = load_benchmark_results(results_dir)
-    if not results:
-        print("⚠️  No benchmark results found. Run benchmarks first.")
-        return
+    # Try to load hardware-grouped results first
+    hardware_results = load_all_hardware_results(results_dir)
 
-    # Apply filters
-    if filter_mode:
-        results = [r for r in results if r["mode"] == filter_mode]
-    if filter_clutter is not None:
-        results = [r for r in results if r.get("clutter", False) == filter_clutter]
-    if filter_release is not None:
-        results = [r for r in results if r.get("release", False) == filter_release]
+    if not hardware_results:
+        # Fallback to flat load
+        results = load_benchmark_results(results_dir)
+        if not results:
+            print("⚠️  No benchmark results found. Run benchmarks first.")
+            return
+        # Group under "legacy" key
+        hardware_results = {"legacy": results}
 
-    if not results:
+    # Apply filters to each hardware group
+    filtered_hw_data = {}
+    for hw_name, results in hardware_results.items():
+        filtered = results
+        if filter_mode:
+            filtered = [r for r in filtered if r["mode"] == filter_mode]
+        if filter_clutter is not None:
+            filtered = [r for r in filtered if r.get("clutter", False) == filter_clutter]
+        if filter_release is not None:
+            filtered = [r for r in filtered if r.get("release", False) == filter_release]
+
+        if filtered:
+            filtered_hw_data[hw_name] = filtered
+
+    if not filtered_hw_data:
         print(f"⚠️  No results matching filters (mode={filter_mode}, clutter={filter_clutter}, release={filter_release})")
         return
 
-    stats = generate_summary_stats(results)
-    unique_values = get_unique_values(results)
-
-    html = _create_html_template(title, results, stats, unique_values)
+    # Check if we have hardware subdirectories or just legacy
+    if len(filtered_hw_data) == 1 and "legacy" in filtered_hw_data:
+        # Legacy mode: render without hardware tabs
+        results = filtered_hw_data["legacy"]
+        stats = generate_summary_stats(results)
+        unique_values = get_unique_values(results)
+        html = _create_html_template(title, results, stats, unique_values)
+    else:
+        # Multi-hardware mode: render with hardware tabs
+        html = _create_html_template_multi_hardware(title, filtered_hw_data)
 
     output_file = Path(output_path)
     output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -306,6 +333,113 @@ def _create_html_template(
     {_get_javascript(chart_configs_js)}
 </body>
 </html>"""
+
+
+def _create_html_template_multi_hardware(
+    title: str, filtered_hw_data: Dict[str, List[Dict]]
+) -> str:
+    """Generate HTML string with hardware tabs for multi-hardware results.
+
+    Args:
+        title: Page title
+        filtered_hw_data: Dictionary mapping hardware names to result lists
+    """
+    # Pre-render all hardware sections
+    all_hardware_data = {}
+
+    for hw_name, results in filtered_hw_data.items():
+        if not results:
+            continue
+
+        hw_type = detect_hardware_type(hw_name) if hw_name != "legacy" else "cpu"
+        unique_values = get_unique_values(results)
+
+        # Collect chart configurations for this hardware
+        chart_configs = []
+
+        # Generate HTML components filtered by hardware type
+        by_n_html = _get_by_n_charts_html(results, unique_values, chart_configs, hardware_type=hw_type)
+        by_b_html = _get_by_b_charts_html(results, unique_values, chart_configs, hardware_type=hw_type)
+        performance_charts = _get_performance_charts_html(results, unique_values, chart_configs, hardware_type=hw_type)
+        detailed_results = _get_detailed_results_html(results, unique_values, hardware_type=hw_type)
+
+        # Build JavaScript array from configs
+        chart_configs_js = "[\n" + ",\n".join(chart_configs) + "\n]" if chart_configs else "[]"
+
+        all_hardware_data[hw_name] = {
+            "hw_type": hw_type,
+            "by_n_html": by_n_html,
+            "by_b_html": by_b_html,
+            "performance_charts": performance_charts,
+            "detailed_results": detailed_results,
+            "chart_configs_js": chart_configs_js,
+        }
+
+    # Generate hardware tab buttons
+    hardware_tabs_html = '<div class="hardware-tabs">'
+    first = True
+    for hw_name in sorted(all_hardware_data.keys(), key=lambda x: (x == "legacy", x)):
+        hw_type = all_hardware_data[hw_name]["hw_type"]
+        display_name = format_hardware_name(hw_name, hw_type) if hw_name != "legacy" else "Legacy Results"
+        tab_class = f"cpu-tab" if hw_type == "cpu" else "gpu-tab"
+        active_class = " active" if first else ""
+        badge = "CPU" if hw_type == "cpu" else "GPU"
+
+        hardware_tabs_html += f'''
+        <button class="hardware-tab {tab_class}{active_class}" data-hardware="{hw_name}">
+            <span class="hardware-badge">{badge}</span>
+            <span>{display_name.replace("[CPU] ", "").replace("[GPU] ", "")}</span>
+        </button>'''
+        first = False
+    hardware_tabs_html += '\n    </div>'
+
+    # Generate initial content (first hardware)
+    first_hw = sorted(all_hardware_data.keys(), key=lambda x: (x == "legacy", x))[0]
+    first_data = all_hardware_data[first_hw]
+    initial_content = f"""
+        {first_data['by_n_html']}
+        {first_data['by_b_html']}
+        {first_data['performance_charts']}
+        {first_data['detailed_results']}
+    """
+
+    # Build JavaScript object with all hardware data
+    hw_data_js = "{\n"
+    for hw_name, data in all_hardware_data.items():
+        hw_data_js += f'    "{hw_name}": {{\n'
+        hw_data_js += f'        chartConfigs: {data["chart_configs_js"]},\n'
+        hw_data_js += f'        contentHtml: `{_escape_for_js(data["by_n_html"] + data["by_b_html"] + data["performance_charts"] + data["detailed_results"])}`\n'
+        hw_data_js += '    },\n'
+    hw_data_js += "}"
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    {_get_chartjs_inline()}
+    {_get_css_styles()}
+</head>
+<body>
+    <header>
+        <h1>{title}</h1>
+    </header>
+
+    {hardware_tabs_html}
+
+    <main id="main-content">
+        {initial_content}
+    </main>
+
+    {_get_javascript_multi_hardware(hw_data_js)}
+</body>
+</html>"""
+
+
+def _escape_for_js(html: str) -> str:
+    """Escape HTML for embedding in JavaScript template literal."""
+    return html.replace('\\', '\\\\').replace('`', '\\`').replace('$', '\\$')
 
 
 def _get_css_styles() -> str:
@@ -362,6 +496,90 @@ def _get_css_styles() -> str:
             background: #3b82f6;
             color: white;
             border-color: #3b82f6;
+        }
+
+        /* Hardware Tabs */
+        .hardware-tabs {
+            position: sticky;
+            top: 0;
+            z-index: 98;
+            background: var(--card-bg);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+        }
+
+        .hardware-tab {
+            padding: 0.75rem 1.5rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .hardware-tab:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+
+        .hardware-tab.active {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .hardware-tab.cpu-tab {
+            border-color: #3b82f6;
+        }
+
+        .hardware-tab.cpu-tab.active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .hardware-tab.gpu-tab {
+            border-color: #22c55e;
+        }
+
+        .hardware-tab.gpu-tab.active {
+            background: #22c55e;
+            color: white;
+        }
+
+        .hardware-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+
+        .cpu-tab .hardware-badge {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .cpu-tab.active .hardware-badge {
+            background: rgba(255,255,255,0.3);
+            color: white;
+        }
+
+        .gpu-tab .hardware-badge {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .gpu-tab.active .hardware-badge {
+            background: rgba(255,255,255,0.3);
+            color: white;
         }
 
         /* Main Content */
@@ -656,6 +874,83 @@ def _get_javascript(chart_configs_js: str) -> str:
     </script>"""
 
 
+def _get_javascript_multi_hardware(hw_data_js: str) -> str:
+    """Return inline JavaScript for hardware tab switching and chart rendering.
+
+    Args:
+        hw_data_js: JavaScript object containing all hardware data
+    """
+    return f"""<script>
+        // All hardware data
+        const allHardwareData = {hw_data_js};
+
+        // Track current charts for cleanup
+        let currentCharts = [];
+
+        // Initialize charts for initial hardware
+        document.addEventListener('DOMContentLoaded', function() {{
+            const firstHardware = Object.keys(allHardwareData)[0];
+            if (firstHardware) {{
+                initChartsForHardware(firstHardware);
+            }}
+        }});
+
+        // Function to initialize charts for a specific hardware
+        function initChartsForHardware(hardwareName) {{
+            const hwData = allHardwareData[hardwareName];
+            if (!hwData || !hwData.chartConfigs) return;
+
+            hwData.chartConfigs.forEach(function(chartConfig) {{
+                const canvas = document.getElementById(chartConfig.id);
+                if (canvas) {{
+                    const chart = new Chart(canvas, chartConfig.config);
+                    currentCharts.push(chart);
+                }}
+            }});
+        }}
+
+        // Function to destroy all current charts
+        function destroyCurrentCharts() {{
+            currentCharts.forEach(chart => {{
+                try {{
+                    chart.destroy();
+                }} catch(e) {{
+                    console.warn('Failed to destroy chart:', e);
+                }}
+            }});
+            currentCharts = [];
+        }}
+
+        // Hardware tab click handler
+        document.querySelectorAll('.hardware-tab').forEach(tab => {{
+            tab.addEventListener('click', () => {{
+                const hardwareName = tab.dataset.hardware;
+                const hwData = allHardwareData[hardwareName];
+
+                if (!hwData) return;
+
+                // Update active tab state
+                document.querySelectorAll('.hardware-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Destroy existing charts
+                destroyCurrentCharts();
+
+                // Update content
+                const mainContent = document.getElementById('main-content');
+                if (mainContent && hwData.contentHtml) {{
+                    mainContent.innerHTML = hwData.contentHtml;
+                }}
+
+                // Initialize new charts
+                setTimeout(() => {{
+                    initChartsForHardware(hardwareName);
+                }}, 100);
+            }});
+        }});
+    </script>"""
+
+
 def _get_quick_nav_tabs(unique_values: Dict) -> str:
     """Generate quick navigation tabs."""
     tabs = [
@@ -722,8 +1017,15 @@ def _get_simulator_overview_html(stats: Dict, results: List[Dict]) -> str:
     return html
 
 
-def _get_performance_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list) -> str:
-    """Generate performance charts and tables for each mode."""
+def _get_performance_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list, hardware_type: str = None) -> str:
+    """Generate performance charts and tables for each mode.
+
+    Args:
+        results: List of result dictionaries
+        unique_values: Dictionary of unique values
+        chart_configs: List to append chart configurations to
+        hardware_type: Optional hardware type filter ("cpu" or "gpu")
+    """
     html = ""
 
     modes = unique_values.get("modes", [])
@@ -741,11 +1043,11 @@ def _get_performance_charts_html(results: List[Dict], unique_values: Dict, chart
         <div class="section-content">"""
 
         if mode == "random":
-            html += _get_random_mode_charts_html(mode_results, unique_values, chart_configs)
-            html += _get_random_mode_matrices(mode_results, unique_values)
+            html += _get_random_mode_charts_html(mode_results, unique_values, chart_configs, hardware_type)
+            html += _get_random_mode_matrices(mode_results, unique_values, hardware_type)
         elif mode == "grasp":
-            html += _get_grasp_mode_charts_html(mode_results, unique_values, chart_configs)
-            html += _get_grasp_mode_matrices(mode_results, unique_values)
+            html += _get_grasp_mode_charts_html(mode_results, unique_values, chart_configs, hardware_type)
+            html += _get_grasp_mode_matrices(mode_results, unique_values, hardware_type)
 
         html += """
         </div>
@@ -754,10 +1056,16 @@ def _get_performance_charts_html(results: List[Dict], unique_values: Dict, chart
     return html
 
 
-def _get_by_n_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list) -> str:
+def _get_by_n_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list, hardware_type: str = None) -> str:
     """Generate HTML for charts grouped by robot count (N).
 
     Shows random mode data only (no clutter) for clear baseline performance.
+
+    Args:
+        results: List of result dictionaries
+        unique_values: Dictionary of unique values
+        chart_configs: List to append chart configurations to
+        hardware_type: Optional hardware type filter ("cpu" or "gpu")
     """
     html = """
     <section class="section" id="by-n">
@@ -781,6 +1089,10 @@ def _get_by_n_charts_html(results: List[Dict], unique_values: Dict, chart_config
 
     grouped = _group_by_n_and_b(random_results)["by_N"]
     simulators = unique_values.get("simulators", [])
+
+    # Filter simulators by hardware type if specified
+    if hardware_type:
+        simulators = [s for s in simulators if SIMULATOR_HARDWARE_MAPPING.get(s) == hardware_type]
 
     for n in sorted(grouped.keys()):
         batch_data = grouped[n]
@@ -820,10 +1132,16 @@ def _get_by_n_charts_html(results: List[Dict], unique_values: Dict, chart_config
     return html
 
 
-def _get_by_b_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list) -> str:
+def _get_by_b_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list, hardware_type: str = None) -> str:
     """Generate HTML for charts grouped by batch size (B).
 
     Shows random mode data only (no clutter) for clear baseline performance.
+
+    Args:
+        results: List of result dictionaries
+        unique_values: Dictionary of unique values
+        chart_configs: List to append chart configurations to
+        hardware_type: Optional hardware type filter ("cpu" or "gpu")
     """
     html = """
     <section class="section" id="by-b">
@@ -847,6 +1165,10 @@ def _get_by_b_charts_html(results: List[Dict], unique_values: Dict, chart_config
 
     grouped = _group_by_n_and_b(random_results)["by_B"]
     simulators = unique_values.get("simulators", [])
+
+    # Filter simulators by hardware type if specified
+    if hardware_type:
+        simulators = [s for s in simulators if SIMULATOR_HARDWARE_MAPPING.get(s) == hardware_type]
 
     for b in sorted(grouped.keys()):
         n_data = grouped[b]
@@ -886,13 +1208,24 @@ def _get_by_b_charts_html(results: List[Dict], unique_values: Dict, chart_config
     return html
 
 
-def _get_random_mode_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list) -> str:
-    """Generate bar charts for random mode - one chart per n_robots value."""
+def _get_random_mode_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list, hardware_type: str = None) -> str:
+    """Generate bar charts for random mode - one chart per n_robots value.
+
+    Args:
+        results: List of result dictionaries
+        unique_values: Dictionary of unique values
+        chart_configs: List to append chart configurations to
+        hardware_type: Optional hardware type filter ("cpu" or "gpu")
+    """
     html = '<div class="subsection"><div class="subsection-title">Performance Charts</div>'
     grouped = _group_results_for_charts(results)["random"]
 
     n_robots_list = sorted(set(r["n_robots"] for r in results))
     simulators = unique_values.get("simulators", [])
+
+    # Filter simulators by hardware type if specified
+    if hardware_type:
+        simulators = [s for s in simulators if SIMULATOR_HARDWARE_MAPPING.get(s) == hardware_type]
 
     for n in n_robots_list:
         # Get batch sizes actually tested for this n_robots value
@@ -927,13 +1260,23 @@ def _get_random_mode_charts_html(results: List[Dict], unique_values: Dict, chart
     return html
 
 
-def _get_random_mode_matrices(results: List[Dict], unique_values: Dict) -> str:
-    """Generate matrices for random mode grouped by batch size."""
+def _get_random_mode_matrices(results: List[Dict], unique_values: Dict, hardware_type: str = None) -> str:
+    """Generate matrices for random mode grouped by batch size.
+
+    Args:
+        results: List of result dictionaries
+        unique_values: Dictionary of unique values
+        hardware_type: Optional hardware type filter ("cpu" or "gpu")
+    """
     html = '<div class="subsection"><div class="subsection-title">Detailed Data Tables</div>'
 
     batch_sizes = sorted(set(r["batch_size"] for r in results))
     n_robots_list = sorted(set(r["n_robots"] for r in results))
     simulators = unique_values.get("simulators", [])
+
+    # Filter simulators by hardware type if specified
+    if hardware_type:
+        simulators = [s for s in simulators if SIMULATOR_HARDWARE_MAPPING.get(s) == hardware_type]
 
     # Check which clutter values exist in the data
     has_clutter_false = any(not r.get("clutter", False) for r in results)
@@ -1037,14 +1380,25 @@ def _get_random_mode_matrices(results: List[Dict], unique_values: Dict) -> str:
     return html
 
 
-def _get_grasp_mode_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list) -> str:
-    """Generate bar charts for grasp mode - one chart per (object, n_robots) combination."""
+def _get_grasp_mode_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list, hardware_type: str = None) -> str:
+    """Generate bar charts for grasp mode - one chart per (object, n_robots) combination.
+
+    Args:
+        results: List of result dictionaries
+        unique_values: Dictionary of unique values
+        chart_configs: List to append chart configurations to
+        hardware_type: Optional hardware type filter ("cpu" or "gpu")
+    """
     html = '<div class="subsection"><div class="subsection-title">Performance Charts</div>'
     grouped = _group_results_for_charts(results)["grasp"]
 
     objects = sorted(set(r.get("object") for r in results if r.get("object")))
     n_robots_list = sorted(set(r["n_robots"] for r in results))
     simulators = unique_values.get("simulators", [])
+
+    # Filter simulators by hardware type if specified
+    if hardware_type:
+        simulators = [s for s in simulators if SIMULATOR_HARDWARE_MAPPING.get(s) == hardware_type]
 
     for obj in objects:
         html += f'<h4 style="margin: 1.5rem 0 1rem 0; color: #475569; font-size: 1.1rem;">Object: {obj.capitalize()}</h4>'
@@ -1085,14 +1439,24 @@ def _get_grasp_mode_charts_html(results: List[Dict], unique_values: Dict, chart_
     return html
 
 
-def _get_grasp_mode_matrices(results: List[Dict], unique_values: Dict) -> str:
-    """Generate matrices for grasp mode grouped by object."""
+def _get_grasp_mode_matrices(results: List[Dict], unique_values: Dict, hardware_type: str = None) -> str:
+    """Generate matrices for grasp mode grouped by object.
+
+    Args:
+        results: List of result dictionaries
+        unique_values: Dictionary of unique values
+        hardware_type: Optional hardware type filter ("cpu" or "gpu")
+    """
     html = '<div class="subsection"><div class="subsection-title">Detailed Data Tables</div>'
 
     objects = sorted(set(r.get("object") for r in results if r.get("object")))
     batch_sizes = sorted(set(r["batch_size"] for r in results))
     n_robots_list = sorted(set(r["n_robots"] for r in results))
     simulators = unique_values.get("simulators", [])
+
+    # Filter simulators by hardware type if specified
+    if hardware_type:
+        simulators = [s for s in simulators if SIMULATOR_HARDWARE_MAPPING.get(s) == hardware_type]
 
     for obj in objects:
         html += f'<h4 style="margin: 1.5rem 0 1rem 0; color: #475569; font-size: 1.1rem;">Object: {obj.capitalize()}</h4>'
@@ -1180,8 +1544,18 @@ def _format_fps_cell(result: Dict) -> str:
                                 </td>"""
 
 
-def _get_detailed_results_html(results: List[Dict], unique_values: Dict) -> str:
-    """Generate detailed results table."""
+def _get_detailed_results_html(results: List[Dict], unique_values: Dict, hardware_type: str = None) -> str:
+    """Generate detailed results table.
+
+    Args:
+        results: List of result dictionaries
+        unique_values: Dictionary of unique values
+        hardware_type: Optional hardware type filter ("cpu" or "gpu")
+    """
+    # Filter results by hardware type if specified
+    if hardware_type:
+        results = [r for r in results if SIMULATOR_HARDWARE_MAPPING.get(r["simulator"]) == hardware_type]
+
     html = """
     <section class="section" id="detailed">
         <div class="section-header">

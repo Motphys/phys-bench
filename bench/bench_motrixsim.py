@@ -1,5 +1,7 @@
 import argparse
+import json
 import os
+import sys
 import time
 
 import motrixsim as mx
@@ -322,6 +324,20 @@ if args.mode == "random":
 
                 data.actuator_ctrls = ctrl
                 model.step(data)
+
+                # Check timeout: 2s per step cumulative
+                elapsed = time.perf_counter() - t_start[0]
+                if elapsed > (i + 1) * 2.0:
+                    error_data = {
+                        "status": "error",
+                        "error_code": "TIMEOUT",
+                        "error_message": f"Timeout at step {i+1}: {elapsed:.2f}s > {(i+1)*2.0:.2f}s",
+                        "per_env_fps": 0.0,
+                        "total_fps": 0.0,
+                    }
+                    print(json.dumps(error_data))
+                    sys.exit(1)
+
                 step_counter[0] += 1
             else:
                 t_end[0] = time.perf_counter()
@@ -356,6 +372,19 @@ if args.mode == "random":
 
             data.actuator_ctrls = ctrl
             model.step(data)
+
+            # Check timeout: 2s per step cumulative
+            elapsed = time.perf_counter() - t0
+            if elapsed > (i + 1) * 2.0:
+                error_data = {
+                    "status": "error",
+                    "error_code": "TIMEOUT",
+                    "error_message": f"Timeout at step {i+1}: {elapsed:.2f}s > {(i+1)*2.0:.2f}s",
+                    "per_env_fps": 0.0,
+                    "total_fps": 0.0,
+                }
+                print(json.dumps(error_data))
+                sys.exit(1)
         t1 = time.perf_counter()
         print(f"per env: {benchmark_steps / (t1 - t0):,.2f} FPS")
         print(f"total  : {benchmark_steps / (t1 - t0) * n_envs:,.2f} FPS")
@@ -442,6 +471,20 @@ else:  # grasp mode
                             ctrl[offset : offset + 7] = ref_pos + noise
                     data.actuator_ctrls = ctrl
                 model.step(data)
+
+                # Check timeout: 2s per step cumulative
+                elapsed = time.perf_counter() - t_start[0]
+                if elapsed > (i + 1) * 2.0:
+                    error_data = {
+                        "status": "error",
+                        "error_code": "TIMEOUT",
+                        "error_message": f"Timeout at step {i+1}: {elapsed:.2f}s > {(i+1)*2.0:.2f}s",
+                        "per_env_fps": 0.0,
+                        "total_fps": 0.0,
+                    }
+                    print(json.dumps(error_data))
+                    sys.exit(1)
+
                 render.sync(data)
                 step_counter[0] += 1
             else:
@@ -476,6 +519,19 @@ else:  # grasp mode
                         ctrl[offset : offset + 7] = ref_pos + noise
                 data.actuator_ctrls = ctrl
             model.step(data)
+
+            # Check timeout: 2s per step cumulative
+            elapsed = time.perf_counter() - t0
+            if elapsed > (i + 1) * 2.0:
+                error_data = {
+                    "status": "error",
+                    "error_code": "TIMEOUT",
+                    "error_message": f"Timeout at step {i+1}: {elapsed:.2f}s > {(i+1)*2.0:.2f}s",
+                    "per_env_fps": 0.0,
+                    "total_fps": 0.0,
+                }
+                print(json.dumps(error_data))
+                sys.exit(1)
         t1 = time.perf_counter()
         print(f"per env: {benchmark_steps / (t1 - t0):,.2f} FPS")
         print(f"total  : {benchmark_steps / (t1 - t0) * n_envs:,.2f} FPS")

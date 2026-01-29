@@ -18,6 +18,9 @@ try:
         ensure_output_directory,
         save_benchmark_result,
         generate_result_filename,
+        get_cpu_model,
+        get_gpu_model,
+        SIMULATOR_HARDWARE_MAPPING,
     )
     from bench_result_visualizer import generate_html_report
     REPORT_AVAILABLE = True
@@ -47,6 +50,22 @@ def run_test(cmd_list, description):
         )
 
         output = result.stdout + result.stderr
+
+        # Check for non-zero return code and JSON error output
+        if result.returncode != 0:
+            # Search for JSON error blob
+            json_error_match = re.search(r'\{[^{}]*"status"\s*:\s*"error"[^{}]*\}', output)
+            if json_error_match:
+                try:
+                    error_data = json.loads(json_error_match.group(0))
+                    error_code = error_data.get("error_code", "UNKNOWN")
+                    error_message = error_data.get("error_message", "Unknown error")
+                    print(f"✗ Error: {error_code}")
+                    print(f"  Message: {error_message}")
+                except json.JSONDecodeError:
+                    print(f"✗ Failed to parse JSON error")
+                    print(f"Output (last 1000 chars): {output[-1000:]}")
+                return None, None
 
         # Extract FPS from output (search in full output, not just last part)
         per_env_match = re.search(r"per env:\s*([\d,]+\.?\d*)\s*FPS", output)
@@ -175,6 +194,35 @@ def main():
 ╚══════════════════════════════════════════════════════════════╝
     """)
 
+    # Detect hardware and create hardware-specific output directories
+    if REPORT_AVAILABLE:
+        cpu_model = get_cpu_model()
+        gpu_model = get_gpu_model()
+        print(f"\n{'='*80}")
+        print(f"Hardware Detection")
+        print(f"{'='*80}")
+        print(f"CPU: {cpu_model}")
+        print(f"GPU: {gpu_model}")
+        print(f"{'='*80}\n")
+
+        # Create per-hardware output directories
+        base_output_dir = Path("output/bench")
+        cpu_output_dir = ensure_output_directory(cpu_model)
+        gpu_output_dir = ensure_output_directory(gpu_model)
+    else:
+        cpu_model = None
+        gpu_model = None
+        base_output_dir = None
+        cpu_output_dir = None
+        gpu_output_dir = None
+
+    def get_output_dir_for_sim(sim_key):
+        """Get hardware-specific output directory for a simulator."""
+        if not REPORT_AVAILABLE:
+            return None
+        hw_type = SIMULATOR_HARDWARE_MAPPING.get(sim_key, "cpu")
+        return gpu_output_dir if hw_type == "gpu" else cpu_output_dir
+
     results = {}
     simulator_configs = {
         "genesis": {
@@ -194,9 +242,6 @@ def main():
             "cmd_prefix": ["uv", "run", "bench/bench_mujocowarp.py"],
         },
     }
-
-    # Initialize output directory for saving results
-    output_dir = ensure_output_directory() if REPORT_AVAILABLE else None
 
     # Run tests for all combinations
     for mode in args.modes:
@@ -237,7 +282,7 @@ def main():
                             # Check for existing result
                             if not args.force:
                                 exists, cached_per_env, cached_total = check_and_load_existing_result(
-                                    output_dir, sim_key, "random", n, b, clutter=clutter, force_fail=args.force_fail
+                                    get_output_dir_for_sim(sim_key), sim_key, "random", n, b, clutter=clutter, force_fail=args.force_fail
                                 )
                                 if exists:
                                     status_label = "success" if cached_per_env else "failed"
@@ -259,9 +304,12 @@ def main():
                             results[key] = {"per_env": per_env, "total": total, "n": n, "b": b, "mode": "random", "sim": sim_key}
 
                             # Save result to JSON
-                            if output_dir is not None:
+                            sim_output_dir = get_output_dir_for_sim(sim_key)
+                            if sim_output_dir is not None:
+                                hw_type = SIMULATOR_HARDWARE_MAPPING.get(sim_key, "cpu")
+                                hw_name = gpu_model if hw_type == "gpu" else cpu_model
                                 save_benchmark_result(
-                                    output_dir=output_dir,
+                                    output_dir=sim_output_dir,
                                     sim_key=sim_key,
                                     sim_name=sim_name,
                                     mode="random",
@@ -270,6 +318,7 @@ def main():
                                     per_env_fps=per_env,
                                     total_fps=total,
                                     clutter=clutter,
+                                    hardware_name=hw_name,
                                 )
 
         elif mode == "grasp":
@@ -307,7 +356,7 @@ def main():
                                 # Check for existing result
                                 if not args.force:
                                     exists, cached_per_env, cached_total = check_and_load_existing_result(
-                                        output_dir, sim_key, "grasp", n, b, object_name=obj, release=release, force_fail=args.force_fail
+                                        get_output_dir_for_sim(sim_key), sim_key, "grasp", n, b, object_name=obj, release=release, force_fail=args.force_fail
                                     )
                                     if exists:
                                         release_label = " (release)" if release else ""
@@ -329,9 +378,12 @@ def main():
                                 results[key] = {"per_env": per_env, "total": total, "n": n, "b": b, "mode": "grasp", "object": obj, "sim": sim_key}
 
                                 # Save result to JSON
-                                if output_dir is not None:
+                                sim_output_dir = get_output_dir_for_sim(sim_key)
+                                if sim_output_dir is not None:
+                                    hw_type = SIMULATOR_HARDWARE_MAPPING.get(sim_key, "cpu")
+                                    hw_name = gpu_model if hw_type == "gpu" else cpu_model
                                     save_benchmark_result(
-                                        output_dir=output_dir,
+                                        output_dir=sim_output_dir,
                                         sim_key=sim_key,
                                         sim_name=sim_name,
                                         mode="grasp",
@@ -341,6 +393,7 @@ def main():
                                         total_fps=total,
                                         object_name=obj,
                                         release=release,
+                                        hardware_name=hw_name,
                                     )
 
     # Print summary tables
@@ -473,7 +526,7 @@ def main():
         print("="*120)
 
         # Create html subdirectory
-        html_dir = output_dir / "html"
+        html_dir = base_output_dir / "html"
         html_dir.mkdir(parents=True, exist_ok=True)
 
         # Delete old HTML files first
@@ -498,7 +551,7 @@ def main():
                 report_path = html_dir / f"{report_name}.html"
                 generate_html_report(
                     output_path=str(report_path),
-                    results_dir=output_dir,
+                    results_dir=base_output_dir,  # Pass base dir so visualizer discovers all hardware subdirs
                     title=f"Benchmark Report - {title}",
                     filter_mode=mode,
                     filter_clutter=clutter,

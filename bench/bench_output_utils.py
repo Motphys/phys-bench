@@ -1,13 +1,183 @@
 """Shared utilities for benchmark output and statistics."""
 
 import json
+import platform
+import re
+import subprocess
 from pathlib import Path
 from typing import List, Dict, Optional
 
+# Module-level cache for hardware detection
+_cached_cpu_model = None
+_cached_gpu_model = None
 
-def ensure_output_directory() -> Path:
-    """Create output directory if it doesn't exist."""
-    output_dir = Path("output/bench")
+# Simulator to hardware type mapping
+SIMULATOR_HARDWARE_MAPPING = {
+    "genesis": "gpu",       # Uses gs.gpu backend
+    "isaacsim": "gpu",      # CUDA-based Isaac Sim
+    "mujocowarp": "gpu",    # Uses NVIDIA Warp
+    "motrixsim": "cpu",     # CPU-based numpy
+}
+
+
+def get_cpu_model() -> str:
+    """Get CPU model name, sanitized for directory names.
+
+    Returns:
+        Sanitized CPU model string suitable for directory name
+    """
+    global _cached_cpu_model
+    if _cached_cpu_model is not None:
+        return _cached_cpu_model
+
+    cpu_model = "Unknown"
+
+    try:
+        if platform.system() == "Linux":
+            with open("/proc/cpuinfo", "r") as f:
+                cpuinfo = f.read()
+            model_match = re.search(r"model name\s*:\s*(.+)", cpuinfo)
+            if model_match:
+                cpu_model = model_match.group(1).strip()
+        else:
+            cpu_model = platform.processor() or "Unknown"
+    except Exception:
+        cpu_model = "Unknown"
+
+    # Sanitize for directory name: replace special chars with underscores
+    cpu_model = re.sub(r"[^\w\s-]", "_", cpu_model)  # Replace special chars
+    cpu_model = re.sub(r"[\s]+", "_", cpu_model)  # Replace spaces with underscores
+    cpu_model = cpu_model.strip("_")
+
+    _cached_cpu_model = cpu_model if cpu_model else "Unknown"
+    return _cached_cpu_model
+
+
+def get_gpu_model() -> str:
+    """Get GPU model name, sanitized for directory names.
+
+    Returns:
+        Sanitized GPU model string suitable for directory name
+    """
+    global _cached_gpu_model
+    if _cached_gpu_model is not None:
+        return _cached_gpu_model
+
+    gpu_model = "Unknown"
+
+    try:
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            # Get first GPU name if multiple GPUs
+            gpu_model = result.stdout.strip().split("\n")[0].strip()
+    except Exception:
+        gpu_model = "Unknown"
+
+    # Sanitize for directory name: replace special chars with underscores
+    gpu_model = re.sub(r"[^\w\s-]", "_", gpu_model)  # Replace special chars
+    gpu_model = re.sub(r"[\s]+", "_", gpu_model)  # Replace spaces with underscores
+    gpu_model = gpu_model.strip("_")
+
+    _cached_gpu_model = gpu_model if gpu_model else "Unknown"
+    return _cached_gpu_model
+
+
+def get_expected_hardware_type(simulator: str) -> Optional[str]:
+    """Get the expected hardware type for a given simulator.
+
+    Args:
+        simulator: Simulator name (e.g., "genesis", "motrixsim")
+
+    Returns:
+        "cpu" or "gpu", or None if simulator is not defined
+    """
+    return SIMULATOR_HARDWARE_MAPPING.get(simulator)
+
+
+def detect_hardware_type(dir_name: str) -> str:
+    """Detect if a hardware directory is CPU or GPU based on name patterns.
+
+    Args:
+        dir_name: Hardware directory name
+
+    Returns:
+        "cpu" or "gpu"
+    """
+    dir_name_lower = dir_name.lower()
+
+    # GPU indicators (check first, as they're more specific)
+    gpu_patterns = ['nvidia', 'geforce', 'radeon', 'gpu', 'graphics', 'rtx', 'gtx', 'arc']
+    if any(pattern in dir_name_lower for pattern in gpu_patterns):
+        return "gpu"
+
+    # CPU indicators
+    cpu_patterns = ['intel', 'amd', 'cpu', 'processor', 'ryzen', 'core', 'xeon']
+    if any(pattern in dir_name_lower for pattern in cpu_patterns):
+        return "cpu"
+
+    # Default to CPU
+    return "cpu"
+
+
+def format_hardware_name(dir_name: str, hardware_type: str = None) -> str:
+    """Convert hardware directory name to friendly display name with type badge.
+
+    Args:
+        dir_name: Hardware directory name
+        hardware_type: "cpu" or "gpu" (auto-detected if None)
+
+    Returns:
+        Formatted name with type badge (e.g., "[CPU] Intel Core i5")
+    """
+    if hardware_type is None:
+        hardware_type = detect_hardware_type(dir_name)
+
+    # Format base name
+    formatted = dir_name.replace('_', ' ').replace('  ', ' ').strip()
+
+    # Add type badge
+    type_badge = "[CPU]" if hardware_type == "cpu" else "[GPU]"
+    return f"{type_badge} {formatted}"
+
+
+def detect_all_hardware_dirs(results_dir: Path) -> List[str]:
+    """Find all hardware subdirectories.
+
+    Args:
+        results_dir: Base directory containing hardware subdirectories
+
+    Returns:
+        List of hardware directory names, sorted by modification time (most recent first)
+    """
+    if not results_dir.exists():
+        return []
+
+    # Find all subdirectories
+    subdirs = [d for d in results_dir.iterdir() if d.is_dir()]
+
+    # Sort by modification time (most recent first)
+    subdirs.sort(key=lambda d: d.stat().st_mtime, reverse=True)
+    return [d.name for d in subdirs]
+
+
+def ensure_output_directory(hardware_name: str = None) -> Path:
+    """Create output directory if it doesn't exist.
+
+    Args:
+        hardware_name: Optional hardware name for hardware-specific subdirectory
+
+    Returns:
+        Path to output directory
+    """
+    if hardware_name:
+        output_dir = Path("output/bench") / hardware_name
+    else:
+        output_dir = Path("output/bench")
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
 
@@ -58,6 +228,7 @@ def save_benchmark_result(
     object_name: Optional[str] = None,
     clutter: bool = False,
     release: bool = False,
+    hardware_name: str = None,
 ) -> None:
     """Save individual benchmark result to JSON.
 
@@ -73,6 +244,7 @@ def save_benchmark_result(
         object_name: Object for grasp mode
         clutter: Whether clutter was enabled
         release: Whether release/shake was enabled
+        hardware_name: Hardware name for metadata
     """
     from datetime import datetime
 
@@ -94,6 +266,9 @@ def save_benchmark_result(
         "timestamp": datetime.now().isoformat(),
     }
 
+    if hardware_name:
+        result["hardware_name"] = hardware_name
+
     with open(filepath, "w") as f:
         json.dump(result, f, indent=2)
 
@@ -114,6 +289,23 @@ def load_benchmark_results(output_dir: Path = None) -> List[Dict]:
         return []
 
     results = []
+
+    # Check for hardware subdirectories first
+    hardware_dirs = detect_all_hardware_dirs(output_dir)
+    if hardware_dirs:
+        # Load from all hardware subdirectories
+        for hw_dir in hardware_dirs:
+            hw_path = output_dir / hw_dir
+            for json_file in sorted(hw_path.glob("*.json")):
+                try:
+                    with open(json_file, "r") as f:
+                        data = json.load(f)
+                    results.append(data)
+                except Exception as e:
+                    print(f"Warning: Failed to load {json_file}: {e}")
+                    continue
+
+    # Also check for flat-layout JSON files (backward compat)
     for json_file in sorted(output_dir.glob("*.json")):
         try:
             with open(json_file, "r") as f:
@@ -124,6 +316,65 @@ def load_benchmark_results(output_dir: Path = None) -> List[Dict]:
             continue
 
     return results
+
+
+def load_all_hardware_results(results_dir: Path) -> Dict[str, List[Dict]]:
+    """Load benchmark results grouped by hardware directory.
+
+    Args:
+        results_dir: Base directory containing hardware subdirectories
+
+    Returns:
+        Dictionary mapping hardware dir names to result lists.
+        Legacy flat-layout files are grouped under "legacy" key.
+    """
+    if not results_dir.exists():
+        return {}
+
+    hardware_results = {}
+
+    # Load from hardware subdirectories
+    hardware_dirs = detect_all_hardware_dirs(results_dir)
+    for hw_dir in hardware_dirs:
+        hw_path = results_dir / hw_dir
+        hw_type = detect_hardware_type(hw_dir)
+        results = []
+
+        for json_file in sorted(hw_path.glob("*.json")):
+            try:
+                with open(json_file, "r") as f:
+                    data = json.load(f)
+
+                # Validate simulator hardware type matches directory hardware type
+                simulator = data.get("simulator")
+                if simulator:
+                    expected_hw = get_expected_hardware_type(simulator)
+                    if expected_hw and expected_hw != hw_type:
+                        print(f"Warning: Simulator {simulator} (expects {expected_hw}) found in {hw_type} directory {hw_dir}")
+
+                results.append(data)
+            except Exception as e:
+                print(f"Warning: Failed to load {json_file}: {e}")
+                continue
+
+        if results:
+            hardware_results[hw_dir] = results
+
+    # Load flat-layout legacy files
+    legacy_results = []
+    for json_file in sorted(results_dir.glob("*.json")):
+        try:
+            with open(json_file, "r") as f:
+                data = json.load(f)
+            legacy_results.append(data)
+        except Exception as e:
+            print(f"Warning: Failed to load {json_file}: {e}")
+            continue
+
+    if legacy_results:
+        hardware_results["legacy"] = legacy_results
+
+    return hardware_results
 
 
 def generate_summary_stats(results: List[Dict]) -> Dict:
