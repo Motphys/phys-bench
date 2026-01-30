@@ -256,9 +256,9 @@ else:  # grasp mode
         panda = model.get_body(panda_index)
         if n_envs > 1:
             init_pos = np.tile(grasp_qpos, (n_envs, 1))
-            panda.set_dof_pos(data, init_pos)
+            panda.set_dof_pos(data, init_pos, False)
         else:
-            panda.set_dof_pos(data, grasp_qpos)
+            panda.set_dof_pos(data, grasp_qpos, False)
     else:
         # Multiple robots: initialize each separately
         for robot_idx in range(args.N):
@@ -266,9 +266,9 @@ else:  # grasp mode
             panda = model.get_body(panda_index)
             if n_envs > 1:
                 init_pos = np.tile(grasp_qpos, (n_envs, 1))
-                panda.set_dof_pos(data, init_pos)
+                panda.set_dof_pos(data, init_pos, False)
             else:
-                panda.set_dof_pos(data, grasp_qpos)
+                panda.set_dof_pos(data, grasp_qpos, False)
 
     def make_ctrl(joint_qpos, gripper_val, n_envs, n_robots):
         """Create actuator control array for multiple robots"""
