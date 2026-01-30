@@ -1,0 +1,15 @@
+{
+  "simulator": "motrixsim",
+  "simulator_name": "Motrixsim",
+  "mode": "franka_grasp",
+  "n_robots": 1,
+  "batch_size": 64,
+  "per_env_fps": 290.07,
+  "total_fps": 18564.73,
+  "object": "cube",
+  "clutter": false,
+  "release": false,
+  "status": "success",
+  "timestamp": "2026-01-30T18:48:35.673042",
+  "hardware_name": "AMD_Ryzen_9_9950X_16-Core_Processor"
+}

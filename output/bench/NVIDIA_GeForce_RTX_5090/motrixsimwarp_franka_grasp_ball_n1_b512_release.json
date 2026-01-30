@@ -1,0 +1,15 @@
+{
+  "simulator": "motrixsimwarp",
+  "simulator_name": "Motrixsim-Warp",
+  "mode": "franka_grasp",
+  "n_robots": 1,
+  "batch_size": 512,
+  "per_env_fps": 908.16,
+  "total_fps": 464976.21,
+  "object": "ball",
+  "clutter": false,
+  "release": true,
+  "status": "success",
+  "timestamp": "2026-01-30T18:14:26.584565",
+  "hardware_name": "NVIDIA_GeForce_RTX_5090"
+}

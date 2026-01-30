@@ -1,0 +1,15 @@
+{
+  "simulator": "genesis",
+  "simulator_name": "Genesis",
+  "mode": "franka_grasp",
+  "n_robots": 10,
+  "batch_size": 1024,
+  "per_env_fps": 3.21,
+  "total_fps": 3288.37,
+  "object": "cube",
+  "clutter": false,
+  "release": true,
+  "status": "success",
+  "timestamp": "2026-01-30T18:48:31.807633",
+  "hardware_name": "NVIDIA_GeForce_RTX_5090"
+}

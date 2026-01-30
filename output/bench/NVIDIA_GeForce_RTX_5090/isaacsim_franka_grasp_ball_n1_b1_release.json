@@ -1,0 +1,15 @@
+{
+  "simulator": "isaacsim",
+  "simulator_name": "IsaacSim",
+  "mode": "franka_grasp",
+  "n_robots": 1,
+  "batch_size": 1,
+  "per_env_fps": 321.65,
+  "total_fps": 321.65,
+  "object": "ball",
+  "clutter": false,
+  "release": true,
+  "status": "success",
+  "timestamp": "2026-01-30T18:16:54.646231",
+  "hardware_name": "NVIDIA_GeForce_RTX_5090"
+}
