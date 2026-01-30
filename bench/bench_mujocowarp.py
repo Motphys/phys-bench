@@ -35,9 +35,9 @@ parser.add_argument(
 parser.add_argument(
     "--mode",
     type=str,
-    default="random",
-    choices=["random", "grasp"],
-    help="Scenario: random or grasp",
+    default="franka_only",
+    choices=["franka_only", "franka_grasp"],
+    help="Scenario: franka_only or franka_grasp",
 )
 parser.add_argument(
     "--object",
@@ -138,8 +138,8 @@ def create_multi_robot_scene(
         # Attach to the frame with prefix
         spec.attach(robot_copy, prefix=f"robot{i}_", frame=frame)
 
-        # Add objects for grasp mode
-        if mode == "grasp" and object_type:
+        # Add objects for franka_grasp mode
+        if mode == "franka_grasp" and object_type:
             obj_x = pos[0] + 0.65
             obj_y = pos[1]
             obj_z = 0.02
@@ -175,8 +175,8 @@ def create_multi_robot_scene(
                 bottle_copy = mujoco.MjSpec.from_file(bottle_path)
                 spec.attach(bottle_copy, prefix=f"bottle{i}_", frame=bottle_frame)
 
-    # Add clutter bottles for random mode
-    if mode == "random" and clutter:
+    # Add clutter bottles for franka_only mode
+    if mode == "franka_only" and clutter:
         bottle_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__), "../assets/objects/scene_bottle.xml"
@@ -226,13 +226,13 @@ OBJECT_CONFIGS = {
 n_robots = args.N
 positions = get_robot_positions(n_robots)
 
-if args.mode == "random":
-    # Random mode: create multi-robot scene
-    mjm = create_multi_robot_scene(n_robots, positions, "random", clutter=args.clutter)
+if args.mode == "franka_only":
+    # Franka only mode: create multi-robot scene
+    mjm = create_multi_robot_scene(n_robots, positions, "franka_only", clutter=args.clutter)
     mjm.opt.timestep = 0.01
 else:
-    # Grasp mode: create multi-robot scene with objects (for all N)
-    mjm = create_multi_robot_scene(n_robots, positions, "grasp", args.object)
+    # Franka grasp mode: create multi-robot scene with objects (for all N)
+    mjm = create_multi_robot_scene(n_robots, positions, "franka_grasp", args.object)
     mjm.opt.timestep = 0.002
 
 ########################## create batched data ##########################
@@ -241,7 +241,7 @@ n_envs = args.B
 # Put model and data on GPU device using MuJoCo-Warp
 m = mjw.put_model(mjm)
 # Increase contact and constraint limits for clutter mode
-if args.mode == "random" and args.clutter:
+if args.mode == "franka_only" and args.clutter:
     d = mjw.make_data(mjm, nworld=n_envs, nconmax=20000, njmax=20000)
 else:
     d = mjw.make_data(mjm, nworld=n_envs, nconmax=40 * n_robots, njmax=150 * n_robots)
@@ -270,7 +270,7 @@ step_graph = capture.graph
 
 
 ########################## mode-specific warmup and benchmark ##########################
-if args.mode == "random":
+if args.mode == "franka_only":
     print(f"Warmup: {n_robots} robots to initial position (200 steps)...")
 
     # Create warmup control for all robots
@@ -359,7 +359,7 @@ if args.mode == "random":
     print(f"per env: {benchmark_steps / (t1 - t0):,.2f} FPS")
     print(f"total  : {benchmark_steps / (t1 - t0) * n_envs:,.2f} FPS")
 
-else:  # grasp mode
+else:  # franka_grasp mode
     config = OBJECT_CONFIGS[args.object]
     grasp_qpos = config["grasp_qpos"]
     lift_steps = config["lift_steps"]

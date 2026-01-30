@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-N", type=int, default=1, choices=[1, 5, 10], help="Number of robots")
 parser.add_argument("-B", type=int, default=1, help="Batch size / parallel environments")
 parser.add_argument("-v", action="store_true", default=False, help="Enable visualization")
-parser.add_argument("--mode", type=str, default="random", choices=["random", "grasp"], help="Scenario: random or grasp")
+parser.add_argument("--mode", type=str, default="franka_only", choices=["franka_only", "franka_grasp"], help="Scenario: franka_only or franka_grasp")
 parser.add_argument("--object", type=str, default="ball", choices=["ball", "cube", "bottle"], help="Object for grasp mode")
 parser.add_argument("-r", action="store_true", default=False, help="Random noise during grasp benchmark phase")
 parser.add_argument("--clutter", action="store_true", default=False, help="Fill scene with 200+ dynamic bottles (random mode only)")
@@ -95,7 +95,7 @@ OBJECT_CONFIGS = {
 }
 
 ########################## create a scene ##########################
-if args.mode == "random":
+if args.mode == "franka_only":
     scene = gs.Scene(
         show_viewer=args.v,
         rigid_options=gs.options.RigidOptions(
@@ -104,7 +104,7 @@ if args.mode == "random":
             tolerance=1e-8,
         ),
     )
-else:  # grasp mode
+else:  # franka_grasp mode
     scene = gs.Scene(
         show_viewer=args.v,
         rigid_options=gs.options.RigidOptions(
@@ -134,8 +134,8 @@ for i in range(args.N):
     )
     frankas.append(franka)
 
-# Add clutter bottles for random mode
-if args.mode == "random" and args.clutter:
+# Add clutter bottles for franka_only mode
+if args.mode == "franka_only" and args.clutter:
     for i in range(args.N):
         clutter_positions = generate_clutter_positions(positions[i])
         for clutter_pos in clutter_positions:
@@ -146,9 +146,9 @@ if args.mode == "random" and args.clutter:
                 ),
             )
 
-# Add objects for grasp mode
+# Add objects for franka_grasp mode
 for i in range(args.N):
-    if args.mode == "grasp":
+    if args.mode == "franka_grasp":
         obj_x = positions[i][0] + 0.65
         obj_y = positions[i][1]
         obj_z = 0.02
@@ -201,8 +201,8 @@ motors_dof = torch.arange(7, device="cuda")
 fingers_dof = torch.arange(7, 9, device="cuda")
 
 ########################## mode-specific warmup and benchmark ##########################
-if args.mode == "random":
-    # Random mode warmup
+if args.mode == "franka_only":
+    # Franka only mode warmup
     warmup_qpos = torch.tensor([0.0, 0.0, 0.0, -1.5708, 0.0, 1.5708, -0.7853, 0.04, 0.04], device="cuda")
 
     for i in range(200):
@@ -210,7 +210,7 @@ if args.mode == "random":
             franka.control_dofs_position(warmup_qpos, motor_dofs)
         scene.step()
 
-    # Random mode benchmark
+    # Franka only mode benchmark
     ref_pos = warmup_qpos[:7]
     gripper_pos = warmup_qpos[7]
 
@@ -242,7 +242,7 @@ if args.mode == "random":
     print(f"per env: {1000 / (t1 - t0):,.2f} FPS")
     print(f"total  : {1000 / (t1 - t0) * n_envs:,.2f} FPS")
 
-else:  # grasp mode
+else:  # franka_grasp mode
     config = OBJECT_CONFIGS[args.object]
     grasp_qpos = torch.tensor(config["grasp_qpos"], device="cuda")
     gripper_force = config["gripper_force"]

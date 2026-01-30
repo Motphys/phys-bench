@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-N", type=int, default=1, choices=[1, 5, 10], help="Number of robots")
 parser.add_argument("-B", type=int, default=1, help="Batch size / parallel environments")
 parser.add_argument("-v", action="store_true", default=False, help="Enable visualization")
-parser.add_argument("--mode", type=str, default="random", choices=["random", "grasp"], help="Scenario: random or grasp")
+parser.add_argument("--mode", type=str, default="franka_only", choices=["franka_only", "franka_grasp"], help="Scenario: franka_only or franka_grasp")
 parser.add_argument("--object", type=str, default="ball", choices=["ball", "cube", "bottle"], help="Object for grasp mode")
 parser.add_argument("-r", action="store_true", default=False, help="Random noise during grasp benchmark phase")
 parser.add_argument("--clutter", action="store_true", default=False, help="Fill scene with 200+ dynamic bottles (random mode only)")
@@ -163,8 +163,8 @@ for i in range(n_robots):
             drive.GetDampingAttr().Set(float(damping))
             drive.GetTypeAttr().Set("force")
 
-    # Add objects for grasp mode
-    if args.mode == "grasp":
+    # Add objects for franka_grasp mode
+    if args.mode == "franka_grasp":
         obj_x = positions[i][0] + 0.65
         obj_y = positions[i][1]
         obj_z = 0.02
@@ -204,8 +204,8 @@ for i in range(n_robots):
             bottle = XFormPrim(f"/World/env_0/Bottle_{i}", name=f"bottle_0_{i}")
             world.scene.add(bottle)
 
-# Add clutter bottles for random mode
-if args.mode == "random" and args.clutter:
+# Add clutter bottles for franka_only mode
+if args.mode == "franka_only" and args.clutter:
     import os
     bottle_usd_path = os.path.abspath("./assets/objects/scene_bottle.usd")
     bottle_counter = 0
@@ -250,8 +250,8 @@ total_robots = n_envs * n_robots
 world.reset()
 
 ########################## mode-specific warmup and benchmark ##########################
-if args.mode == "random":
-    # Random mode warmup
+if args.mode == "franka_only":
+    # Franka only mode warmup
     warmup_qpos = np.array([0.0, 0.0, 0.0, -1.5708, 0.0, 1.5708, -0.7853, 0.04, 0.04])
     warmup_qpos_tensor = torch.tensor(warmup_qpos, device="cuda", dtype=torch.float32).unsqueeze(0).repeat(total_robots, 1)
 
@@ -260,7 +260,7 @@ if args.mode == "random":
         franka_view.set_joint_position_targets(warmup_qpos_tensor)
         world.step(render=args.v)
 
-    # Random mode benchmark
+    # Franka only mode benchmark
     print(f"Benchmark: 1000 steps with {n_robots} robots x {n_envs} envs (random motion)...")
     benchmark_steps = 1000
     ref_pos_tensor = torch.tensor(warmup_qpos[:7], device="cuda", dtype=torch.float32).unsqueeze(0).repeat(total_robots, 1)
@@ -292,7 +292,7 @@ if args.mode == "random":
     print(f"per env: {benchmark_steps / (t1 - t0):,.2f} FPS")
     print(f"total  : {benchmark_steps / (t1 - t0) * n_envs:,.2f} FPS")
 
-else:  # grasp mode
+else:  # franka_grasp mode
     config = OBJECT_CONFIGS[args.object]
     grasp_qpos = config["grasp_qpos"]
     lift_qpos = config["lift_qpos"]

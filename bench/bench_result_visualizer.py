@@ -18,6 +18,7 @@ from bench_output_utils import (
 SIMULATOR_COLORS = {
     "genesis": "#3b82f6",      # Blue
     "motrixsim": "#22c55e",    # Green
+    "motrixsimwarp": "#a855f7",# Purple
     "isaacsim": "#ef4444",     # Red
     "mujocowarp": "#f59e0b",   # Amber
 }
@@ -26,6 +27,7 @@ SIMULATOR_COLORS = {
 SIM_DISPLAY_NAMES = {
     "genesis": "Genesis",
     "motrixsim": "MotrixSim",
+    "motrixsimwarp": "Motrixsim-Warp",
     "isaacsim": "IsaacSim",
     "mujocowarp": "MuJoCo-Warp",
 }
@@ -132,13 +134,13 @@ def _group_results_for_charts(results: List[Dict]) -> Dict:
     Returns:
         Structure:
         {
-            "random": {n_robots: {batch_size: {simulator: {total_fps, per_env_fps}}}},
-            "grasp": {object: {n_robots: {batch_size: {simulator: {total_fps, per_env_fps}}}}}
+            "franka_only": {n_robots: {batch_size: {simulator: {total_fps, per_env_fps}}}},
+            "franka_grasp": {object: {n_robots: {batch_size: {simulator: {total_fps, per_env_fps}}}}}
         }
     """
     grouped = {
-        "random": {},
-        "grasp": {}
+        "franka_only": {},
+        "franka_grasp": {}
     }
 
     for r in results:
@@ -155,22 +157,22 @@ def _group_results_for_charts(results: List[Dict]) -> Dict:
             "per_env_fps": r["per_env_fps"]
         }
 
-        if mode == "random":
-            if n_robots not in grouped["random"]:
-                grouped["random"][n_robots] = {}
-            if batch_size not in grouped["random"][n_robots]:
-                grouped["random"][n_robots][batch_size] = {}
-            grouped["random"][n_robots][batch_size][simulator] = fps_data
+        if mode == "franka_only":
+            if n_robots not in grouped["franka_only"]:
+                grouped["franka_only"][n_robots] = {}
+            if batch_size not in grouped["franka_only"][n_robots]:
+                grouped["franka_only"][n_robots][batch_size] = {}
+            grouped["franka_only"][n_robots][batch_size][simulator] = fps_data
 
-        elif mode == "grasp":
+        elif mode == "franka_grasp":
             obj = r.get("object", "unknown")
-            if obj not in grouped["grasp"]:
-                grouped["grasp"][obj] = {}
-            if n_robots not in grouped["grasp"][obj]:
-                grouped["grasp"][obj][n_robots] = {}
-            if batch_size not in grouped["grasp"][obj][n_robots]:
-                grouped["grasp"][obj][n_robots][batch_size] = {}
-            grouped["grasp"][obj][n_robots][batch_size][simulator] = fps_data
+            if obj not in grouped["franka_grasp"]:
+                grouped["franka_grasp"][obj] = {}
+            if n_robots not in grouped["franka_grasp"][obj]:
+                grouped["franka_grasp"][obj][n_robots] = {}
+            if batch_size not in grouped["franka_grasp"][obj][n_robots]:
+                grouped["franka_grasp"][obj][n_robots][batch_size] = {}
+            grouped["franka_grasp"][obj][n_robots][batch_size][simulator] = fps_data
 
     return grouped
 
@@ -233,7 +235,7 @@ def generate_html_report(
         output_path: Path where HTML file will be saved
         results_dir: Directory containing JSON results (defaults to "output/bench")
         title: Title for the HTML page
-        filter_mode: Filter by mode ("random" or "grasp", None for all)
+        filter_mode: Filter by mode ("franka_only" or "franka_grasp", None for all)
         filter_clutter: Filter by clutter flag (True/False/None for all)
         filter_release: Filter by release flag (True/False/None for all)
     """
@@ -958,9 +960,14 @@ def _get_quick_nav_tabs(unique_values: Dict) -> str:
         '<button class="nav-tab" data-target="by-b">By Batch Size</button>'
     ]
 
+    # Mode display name mapping
+    MODE_DISPLAY_NAMES = {"franka_only": "Franka Only", "franka_grasp": "Franka Grasp"}
+
     modes = unique_values.get("modes", [])
     for mode in modes:
-        mode_label = mode.capitalize()
+        if mode == "franka_only":
+            continue  # Already covered by "Performance by Robot Count (N)"
+        mode_label = MODE_DISPLAY_NAMES.get(mode, mode.replace("_", " ").title())
         tabs.append(f'<button class="nav-tab" data-target="mode-{mode}">{mode_label}</button>')
 
     tabs.append('<button class="nav-tab" data-target="detailed">Detailed Results</button>')
@@ -996,9 +1003,7 @@ def _get_simulator_overview_html(stats: Dict, results: List[Dict]) -> str:
             fps_class = "low"
 
         # Get simulator display name
-        sim_display = sim.capitalize()
-        if sim in ["motrixsim", "mujocowarp", "isaacsim"]:
-            sim_display = {"motrixsim": "MotrixSim", "mujocowarp": "MuJoCo-Warp", "isaacsim": "IsaacSim"}[sim]
+        sim_display = SIM_DISPLAY_NAMES.get(sim, sim.capitalize())
 
         html += f"""
                 <div class="simulator-card {level_class}">
@@ -1028,13 +1033,18 @@ def _get_performance_charts_html(results: List[Dict], unique_values: Dict, chart
     """
     html = ""
 
+    # Mode display name mapping
+    MODE_DISPLAY_NAMES = {"franka_only": "Franka Only", "franka_grasp": "Franka Grasp"}
+
     modes = unique_values.get("modes", [])
     for mode in modes:
+        if mode == "franka_only":
+            continue  # Already covered by "Performance by Robot Count (N)"
         mode_results = [r for r in results if r["mode"] == mode]
         if not mode_results:
             continue
 
-        mode_label = mode.capitalize()
+        mode_label = MODE_DISPLAY_NAMES.get(mode, mode.replace("_", " ").title())
         html += f"""
     <section class="section" id="mode-{mode}">
         <div class="section-header">
@@ -1042,12 +1052,12 @@ def _get_performance_charts_html(results: List[Dict], unique_values: Dict, chart
         </div>
         <div class="section-content">"""
 
-        if mode == "random":
-            html += _get_random_mode_charts_html(mode_results, unique_values, chart_configs, hardware_type)
-            html += _get_random_mode_matrices(mode_results, unique_values, hardware_type)
-        elif mode == "grasp":
-            html += _get_grasp_mode_charts_html(mode_results, unique_values, chart_configs, hardware_type)
-            html += _get_grasp_mode_matrices(mode_results, unique_values, hardware_type)
+        if mode == "franka_only":
+            html += _get_franka_only_charts_html(mode_results, unique_values, chart_configs, hardware_type)
+            html += _get_franka_only_matrices(mode_results, unique_values, hardware_type)
+        elif mode == "franka_grasp":
+            html += _get_franka_grasp_charts_html(mode_results, unique_values, chart_configs, hardware_type)
+            html += _get_franka_grasp_matrices(mode_results, unique_values, hardware_type)
 
         html += """
         </div>
@@ -1059,7 +1069,7 @@ def _get_performance_charts_html(results: List[Dict], unique_values: Dict, chart
 def _get_by_n_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list, hardware_type: str = None) -> str:
     """Generate HTML for charts grouped by robot count (N).
 
-    Shows random mode data only (no clutter) for clear baseline performance.
+    Shows franka_only mode data only (no clutter) for clear baseline performance.
 
     Args:
         results: List of result dictionaries
@@ -1074,20 +1084,20 @@ def _get_by_n_charts_html(results: List[Dict], unique_values: Dict, chart_config
         </div>
         <div class="section-content">"""
 
-    # Filter for random mode only, exclude clutter tests
-    random_results = [r for r in results
-                      if r.get("mode") == "random"
+    # Filter for franka_only mode only, exclude clutter tests
+    franka_only_results = [r for r in results
+                      if r.get("mode") == "franka_only"
                       and r.get("status") == "success"
                       and not r.get("clutter", False)]
 
-    if not random_results:
-        html += '<div class="empty-state">No random mode data available</div>'
+    if not franka_only_results:
+        html += '<div class="empty-state">No franka_only mode data available</div>'
         html += """
         </div>
     </section>"""
         return html
 
-    grouped = _group_by_n_and_b(random_results)["by_N"]
+    grouped = _group_by_n_and_b(franka_only_results)["by_N"]
     simulators = unique_values.get("simulators", [])
 
     # Filter simulators by hardware type if specified
@@ -1135,7 +1145,7 @@ def _get_by_n_charts_html(results: List[Dict], unique_values: Dict, chart_config
 def _get_by_b_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list, hardware_type: str = None) -> str:
     """Generate HTML for charts grouped by batch size (B).
 
-    Shows random mode data only (no clutter) for clear baseline performance.
+    Shows franka_only mode data only (no clutter) for clear baseline performance.
 
     Args:
         results: List of result dictionaries
@@ -1150,20 +1160,20 @@ def _get_by_b_charts_html(results: List[Dict], unique_values: Dict, chart_config
         </div>
         <div class="section-content">"""
 
-    # Filter for random mode only, exclude clutter tests
-    random_results = [r for r in results
-                      if r.get("mode") == "random"
+    # Filter for franka_only mode only, exclude clutter tests
+    franka_only_results = [r for r in results
+                      if r.get("mode") == "franka_only"
                       and r.get("status") == "success"
                       and not r.get("clutter", False)]
 
-    if not random_results:
-        html += '<div class="empty-state">No random mode data available</div>'
+    if not franka_only_results:
+        html += '<div class="empty-state">No franka_only mode data available</div>'
         html += """
         </div>
     </section>"""
         return html
 
-    grouped = _group_by_n_and_b(random_results)["by_B"]
+    grouped = _group_by_n_and_b(franka_only_results)["by_B"]
     simulators = unique_values.get("simulators", [])
 
     # Filter simulators by hardware type if specified
@@ -1208,8 +1218,8 @@ def _get_by_b_charts_html(results: List[Dict], unique_values: Dict, chart_config
     return html
 
 
-def _get_random_mode_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list, hardware_type: str = None) -> str:
-    """Generate bar charts for random mode - one chart per n_robots value.
+def _get_franka_only_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list, hardware_type: str = None) -> str:
+    """Generate bar charts for franka_only mode - one chart per n_robots value.
 
     Args:
         results: List of result dictionaries
@@ -1218,7 +1228,7 @@ def _get_random_mode_charts_html(results: List[Dict], unique_values: Dict, chart
         hardware_type: Optional hardware type filter ("cpu" or "gpu")
     """
     html = '<div class="subsection"><div class="subsection-title">Performance Charts</div>'
-    grouped = _group_results_for_charts(results)["random"]
+    grouped = _group_results_for_charts(results)["franka_only"]
 
     n_robots_list = sorted(set(r["n_robots"] for r in results))
     simulators = unique_values.get("simulators", [])
@@ -1245,10 +1255,10 @@ def _get_random_mode_charts_html(results: List[Dict], unique_values: Dict, chart
                 "backgroundColor": SIMULATOR_COLORS.get(sim, "#94a3b8")
             })
 
-        chart_id = f"chart-random-n{n}"
+        chart_id = f"chart-franka-only-n{n}"
         chart_config = _get_chart_config(
             chart_id,
-            f"Random Mode - N={n} Robot{'s' if n > 1 else ''}",
+            f"Franka Only - N={n} Robot{'s' if n > 1 else ''}",
             labels,
             datasets
         )
@@ -1260,8 +1270,8 @@ def _get_random_mode_charts_html(results: List[Dict], unique_values: Dict, chart
     return html
 
 
-def _get_random_mode_matrices(results: List[Dict], unique_values: Dict, hardware_type: str = None) -> str:
-    """Generate matrices for random mode grouped by batch size.
+def _get_franka_only_matrices(results: List[Dict], unique_values: Dict, hardware_type: str = None) -> str:
+    """Generate matrices for franka_only mode grouped by batch size.
 
     Args:
         results: List of result dictionaries
@@ -1309,9 +1319,7 @@ def _get_random_mode_matrices(results: List[Dict], unique_values: Dict, hardware
                 result_lookup[key] = r
 
         for sim in simulators:
-            sim_display = sim.capitalize()
-            if sim in ["motrixsim", "mujocowarp", "isaacsim"]:
-                sim_display = {"motrixsim": "MotrixSim", "mujocowarp": "MuJoCo-Warp", "isaacsim": "IsaacSim"}[sim]
+            sim_display = SIM_DISPLAY_NAMES.get(sim, sim.capitalize())
 
             html += f"""
                             <tr>
@@ -1352,9 +1360,7 @@ def _get_random_mode_matrices(results: List[Dict], unique_values: Dict, hardware
                             <tbody>"""
 
                 for sim in simulators:
-                    sim_display = sim.capitalize()
-                    if sim in ["motrixsim", "mujocowarp", "isaacsim"]:
-                        sim_display = {"motrixsim": "MotrixSim", "mujocowarp": "MuJoCo-Warp", "isaacsim": "IsaacSim"}[sim]
+                    sim_display = SIM_DISPLAY_NAMES.get(sim, sim.capitalize())
 
                     html += f"""
                                 <tr>
@@ -1380,8 +1386,8 @@ def _get_random_mode_matrices(results: List[Dict], unique_values: Dict, hardware
     return html
 
 
-def _get_grasp_mode_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list, hardware_type: str = None) -> str:
-    """Generate bar charts for grasp mode - one chart per (object, n_robots) combination.
+def _get_franka_grasp_charts_html(results: List[Dict], unique_values: Dict, chart_configs: list, hardware_type: str = None) -> str:
+    """Generate bar charts for franka_grasp mode - one chart per (object, n_robots) combination.
 
     Args:
         results: List of result dictionaries
@@ -1390,7 +1396,7 @@ def _get_grasp_mode_charts_html(results: List[Dict], unique_values: Dict, chart_
         hardware_type: Optional hardware type filter ("cpu" or "gpu")
     """
     html = '<div class="subsection"><div class="subsection-title">Performance Charts</div>'
-    grouped = _group_results_for_charts(results)["grasp"]
+    grouped = _group_results_for_charts(results)["franka_grasp"]
 
     objects = sorted(set(r.get("object") for r in results if r.get("object")))
     n_robots_list = sorted(set(r["n_robots"] for r in results))
@@ -1424,10 +1430,10 @@ def _get_grasp_mode_charts_html(results: List[Dict], unique_values: Dict, chart_
                     "backgroundColor": SIMULATOR_COLORS.get(sim, "#94a3b8")
                 })
 
-            chart_id = f"chart-grasp-{obj}-n{n}"
+            chart_id = f"chart-franka-grasp-{obj}-n{n}"
             chart_config = _get_chart_config(
                 chart_id,
-                f"Grasp Mode - {obj.capitalize()}, N={n} Robot{'s' if n > 1 else ''}",
+                f"Franka Grasp - {obj.capitalize()}, N={n} Robot{'s' if n > 1 else ''}",
                 labels,
                 datasets
             )
@@ -1439,8 +1445,8 @@ def _get_grasp_mode_charts_html(results: List[Dict], unique_values: Dict, chart_
     return html
 
 
-def _get_grasp_mode_matrices(results: List[Dict], unique_values: Dict, hardware_type: str = None) -> str:
-    """Generate matrices for grasp mode grouped by object.
+def _get_franka_grasp_matrices(results: List[Dict], unique_values: Dict, hardware_type: str = None) -> str:
+    """Generate matrices for franka_grasp mode grouped by object.
 
     Args:
         results: List of result dictionaries
@@ -1488,9 +1494,7 @@ def _get_grasp_mode_matrices(results: List[Dict], unique_values: Dict, hardware_
                     result_lookup[key] = r
 
             for sim in simulators:
-                sim_display = sim.capitalize()
-                if sim in ["motrixsim", "mujocowarp", "isaacsim"]:
-                    sim_display = {"motrixsim": "MotrixSim", "mujocowarp": "MuJoCo-Warp", "isaacsim": "IsaacSim"}[sim]
+                sim_display = SIM_DISPLAY_NAMES.get(sim, sim.capitalize())
 
                 html += f"""
                                 <tr>
@@ -1552,6 +1556,9 @@ def _get_detailed_results_html(results: List[Dict], unique_values: Dict, hardwar
         unique_values: Dictionary of unique values
         hardware_type: Optional hardware type filter ("cpu" or "gpu")
     """
+    # Mode display name mapping
+    MODE_DISPLAY_NAMES = {"franka_only": "Franka Only", "franka_grasp": "Franka Grasp"}
+
     # Filter results by hardware type if specified
     if hardware_type:
         results = [r for r in results if SIMULATOR_HARDWARE_MAPPING.get(r["simulator"]) == hardware_type]
@@ -1586,9 +1593,7 @@ def _get_detailed_results_html(results: List[Dict], unique_values: Dict, hardwar
     )
 
     for r in sorted_results:
-        sim_display = r["simulator"].capitalize()
-        if r["simulator"] in ["motrixsim", "mujocowarp", "isaacsim"]:
-            sim_display = {"motrixsim": "MotrixSim", "mujocowarp": "MuJoCo-Warp", "isaacsim": "IsaacSim"}[r["simulator"]]
+        sim_display = SIM_DISPLAY_NAMES.get(r["simulator"], r["simulator"].capitalize())
 
         obj_display = r.get("object", "—").capitalize() if r.get("object") else "—"
         clutter_display = "Yes" if r.get("clutter") else "No"
@@ -1605,10 +1610,11 @@ def _get_detailed_results_html(results: List[Dict], unique_values: Dict, hardwar
             per_env_display = "—"
             total_display = "—"
 
+        mode_display = MODE_DISPLAY_NAMES.get(r["mode"], r["mode"].replace("_", " ").title())
         html += f"""
                     <tr>
                         <td>{sim_display}</td>
-                        <td>{r["mode"].capitalize()}</td>
+                        <td>{mode_display}</td>
                         <td>{obj_display}</td>
                         <td>{r["n_robots"]}</td>
                         <td>{r["batch_size"]}</td>

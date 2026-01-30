@@ -16,6 +16,7 @@ SIMULATOR_HARDWARE_MAPPING = {
     "genesis": "gpu",       # Uses gs.gpu backend
     "isaacsim": "gpu",      # CUDA-based Isaac Sim
     "mujocowarp": "gpu",    # Uses NVIDIA Warp
+    "motrixsimwarp": "gpu", # Motrixsim Warp (GPU via NVIDIA Warp)
     "motrixsim": "cpu",     # CPU-based numpy
 }
 
@@ -195,19 +196,19 @@ def generate_result_filename(
 
     Args:
         sim_key: Simulator identifier (genesis, motrixsim, etc.)
-        mode: Test mode (random, grasp)
+        mode: Test mode (franka_only, franka_grasp)
         n: Number of robots
         b: Batch size
-        object_name: Object name for grasp mode (ball, cube, bottle)
+        object_name: Object name for franka_grasp mode (ball, cube, bottle)
         clutter: Whether clutter flag was enabled
         release: Whether release/shake flag was enabled
 
     Returns:
-        Filename like: genesis_random_n5_b64_cluttertrue.json
-                  or: motrixsim_grasp_cube_n10_b512.json
-                  or: genesis_grasp_ball_n1_b64_release.json
+        Filename like: genesis_franka_only_n5_b64_cluttertrue.json
+                  or: motrixsim_franka_grasp_cube_n10_b512.json
+                  or: genesis_franka_grasp_ball_n1_b64_release.json
     """
-    if mode == "grasp" and object_name:
+    if mode == "franka_grasp" and object_name:
         release_str = "_release" if release else ""
         filename = f"{sim_key}_{mode}_{object_name}_n{n}_b{b}{release_str}.json"
     else:
@@ -236,12 +237,12 @@ def save_benchmark_result(
         output_dir: Directory to save results
         sim_key: Simulator key (genesis, motrixsim, etc.)
         sim_name: Simulator display name (Genesis, Motrixsim, etc.)
-        mode: Test mode (random, grasp)
+        mode: Test mode (franka_only, franka_grasp)
         n: Number of robots
         b: Batch size
         per_env_fps: Per-environment FPS (None if failed)
         total_fps: Total FPS (None if failed)
-        object_name: Object for grasp mode
+        object_name: Object for franka_grasp mode
         clutter: Whether clutter was enabled
         release: Whether release/shake was enabled
         hardware_name: Hardware name for metadata
