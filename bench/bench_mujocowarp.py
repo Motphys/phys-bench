@@ -279,6 +279,9 @@ if args.mode == "franka_only":
         offset = robot_idx * actuators_per_robot
         warmup_ctrl[:, offset : offset + 7] = warmup_qpos[:7]
         warmup_ctrl[:, offset + 7] = warmup_qpos[7]
+    
+    init_qpos = np.tile(np.repeat(warmup_qpos, n_robots), (n_envs, 1))
+    wp.copy(d.qpos, wp.array(init_qpos, dtype=wp.float32))
 
     for i in range(200):
         wp.copy(d.ctrl, wp.array(warmup_ctrl, dtype=wp.float32))
@@ -295,7 +298,7 @@ if args.mode == "franka_only":
     def randomize_ctrl_kernel(ref_pos: wp.array(dtype=float), step_counter_wp: wp.array(dtype=int), ctrl_per_robot: int, ctrls: wp.array2d(dtype=float)):
         step = step_counter_wp[0]
         wid, robot_id, tid = wp.tid()
-        noise = wp.randf(wp.uint32(wid * ctrls.shape[1] + tid + step), -0.025, 0.025)
+        noise = wp.randf(wp.uint32(wid * ctrls.shape[1] + tid + step), -0.2, 0.2)
         ctrls[wid, robot_id * ctrl_per_robot + tid] = ref_pos[tid] + noise
 
         if wid == 0 and tid == 0:

@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "warp-lang==1.11.0",
-    "motrixsim-warp===0.1.0a0.post0.dev88137",
+    "motrixsim-warp===0.1.0a0.post0.dev88346",
 ]
 
 [tool.uv.sources]
