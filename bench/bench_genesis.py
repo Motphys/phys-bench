@@ -204,6 +204,9 @@ fingers_dof = torch.arange(7, 9, device="cuda")
 if args.mode == "franka_only":
     # Franka only mode warmup
     warmup_qpos = torch.tensor([0.0, 0.0, 0.0, -1.5708, 0.0, 1.5708, -0.7853, 0.04, 0.04], device="cuda")
+    
+    for franka in frankas:
+        franka.set_dofs_position(warmup_qpos)
 
     for i in range(200):
         for franka in frankas:

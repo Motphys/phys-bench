@@ -87,7 +87,7 @@ if args.mode == "franka_only":
             other_rotation=rotations[i],
         )
 
-    model = scene.build(150)
+    model = scene.build(150 * args.N)
     model.options.timestep = 0.01
 
 elif args.mode == "franka_grasp":
@@ -141,6 +141,10 @@ if args.mode == "franka_only":
             warmup_ctrl[offset : offset + 7] = warmup_qpos[:7]
             warmup_ctrl[offset + 7] = warmup_qpos[7]
 
+    init_qpos = warmup_qpos
+    # TODO: delete this line on all engines
+    data.set_dof_pos(np.tile(init_qpos, (n_envs, n_robots, 1)).tolist())
+
     for i in range(200):
         data.set_ctrls(warmup_ctrl)
         model.step(data)
@@ -148,6 +152,23 @@ if args.mode == "franka_only":
     print(f"Benchmark: 1000 steps with {n_robots} robots (random motion)...")
     benchmark_steps = 1000
     ref_pos = warmup_qpos[:7].copy()
+    
+    ref_pos_wp = wp.array(ref_pos, dtype=float)
+    step_counter_wp = wp.array([0], dtype=int)
+
+    @wp.kernel
+    def randomize_ctrl_kernel(ref_pos: wp.array(dtype=float), step_counter_wp: wp.array(dtype=int), ctrl_per_robot: int, ctrls: wp.array2d(dtype=float)):
+        step = step_counter_wp[0]
+        wid, robot_id, tid = wp.tid()
+        noise = wp.randf(wp.uint32(wid * ctrls.shape[1] + tid + step), -0.2, 0.2)
+        ctrls[wid, robot_id * ctrl_per_robot + tid] = ref_pos[tid] + noise
+
+        if wid == 0 and tid == 0:
+            step_counter_wp[0] = step + 1
+
+    with wp.ScopedCapture(device="cuda") as capture:
+        wp.launch(randomize_ctrl_kernel, dim=(n_envs, n_robots, 7), inputs=[ref_pos_wp, step_counter_wp, actuators_per_robot, data.ctrls], block_dim=32)
+    randomize_graph = capture.graph
 
     if args.v:
         step_counter = [0]
@@ -163,23 +184,9 @@ if args.mode == "franka_only":
 
             i = step_counter[0]
             if i < benchmark_steps:
-                if n_envs > 1:
-                    ctrl = np.zeros((n_envs, total_actuators), dtype=np.float32)
-                else:
-                    ctrl = np.zeros(total_actuators, dtype=np.float32)
+                
+                wp.capture_launch(randomize_graph)
 
-                for robot_idx in range(n_robots):
-                    offset = robot_idx * actuators_per_robot
-                    if n_envs > 1:
-                        noise = np.random.uniform(-0.2, 0.2, (n_envs, 7)).astype(np.float32)
-                        ctrl[:, offset : offset + 7] = ref_pos + noise
-                        ctrl[:, offset + 7] = warmup_qpos[7]
-                    else:
-                        noise = np.random.uniform(-0.2, 0.2, 7).astype(np.float32)
-                        ctrl[offset : offset + 7] = ref_pos + noise
-                        ctrl[offset + 7] = warmup_qpos[7]
-
-                data.set_ctrls(ctrl)
                 model.step(data)
 
                 # Check timeout: 2s per step cumulative
@@ -208,23 +215,8 @@ if args.mode == "franka_only":
     else:
         t0 = time.perf_counter()
         for i in range(benchmark_steps):
-            if n_envs > 1:
-                ctrl = np.zeros((n_envs, total_actuators), dtype=np.float32)
-            else:
-                ctrl = np.zeros(total_actuators, dtype=np.float32)
-
-            for robot_idx in range(n_robots):
-                offset = robot_idx * actuators_per_robot
-                if n_envs > 1:
-                    noise = np.random.uniform(-0.2, 0.2, (n_envs, 7)).astype(np.float32)
-                    ctrl[:, offset : offset + 7] = ref_pos + noise
-                    ctrl[:, offset + 7] = warmup_qpos[7]
-                else:
-                    noise = np.random.uniform(-0.2, 0.2, 7).astype(np.float32)
-                    ctrl[offset : offset + 7] = ref_pos + noise
-                    ctrl[offset + 7] = warmup_qpos[7]
-
-            data.set_ctrls(ctrl)
+    
+            wp.capture_launch(randomize_graph)
             model.step(data)
 
             # Check timeout: 2s per step cumulative

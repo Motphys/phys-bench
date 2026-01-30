@@ -282,6 +282,15 @@ if args.mode == "franka_only":
             warmup_ctrl[offset : offset + 7] = warmup_qpos[:7]
             warmup_ctrl[offset + 7] = warmup_qpos[7]
 
+    for robot_idx in range(args.N):
+        panda_index = model.get_body_index(f"robot{robot_idx}_link0")
+        panda = model.get_body(panda_index)
+        if n_envs > 1:
+            init_pos = np.tile(warmup_qpos, (n_envs, 1))
+            panda.set_dof_pos(data, init_pos)
+        else:
+            panda.set_dof_pos(data, warmup_qpos)
+
     for i in range(200):
         data.actuator_ctrls = warmup_ctrl
         model.step(data)
