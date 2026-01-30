@@ -1,0 +1,15 @@
+{
+  "simulator": "motrixsimwarp",
+  "simulator_name": "Motrixsim-Warp",
+  "mode": "franka_only",
+  "n_robots": 10,
+  "batch_size": 1,
+  "per_env_fps": null,
+  "total_fps": null,
+  "object": null,
+  "clutter": false,
+  "release": false,
+  "status": "failed",
+  "timestamp": "2026-01-30T16:11:51.477936",
+  "hardware_name": "NVIDIA_GeForce_RTX_5090_D_v2"
+}

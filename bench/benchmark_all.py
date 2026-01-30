@@ -136,22 +136,22 @@ def get_batch_sizes_for_robot_count(n_robots, mode, clutter=False):
     Get appropriate batch sizes for a given robot count and mode.
 
     Rules:
-    - grasp mode: N=1 [1,1024,4096,8192], N=5 [1,512,2048,4096], N=10 [1,256,1024,2048]
-    - random mode (normal): N=1 [1,1024,4096,8192]
-    - random mode (clutter): [1,16,32,64]
+    - franka_grasp mode: N=1 [1,1024,4096,8192], N=5 [1,512,2048,4096], N=10 [1,256,1024,2048]
+    - franka_only mode (normal): N=1 [1,1024,4096,8192]
+    - franka_only mode (clutter): [1,16,32,64]
     """
-    if mode == "random" and clutter:
+    if mode == "franka_only" and clutter:
         return [1, 16, 32, 64]
-    elif mode == "random":
+    elif mode == "franka_only":
         if n_robots == 1:
             return [1, 1024, 4096, 8192]
         else:
-            # For N>1 in random mode, use same as grasp
+            # For N>1 in franka_only mode, use same as franka_grasp
             if n_robots == 5:
                 return [1, 512, 2048, 4096]
             elif n_robots == 10:
                 return [1, 256, 1024, 2048]
-    elif mode == "grasp":
+    elif mode == "franka_grasp":
         if n_robots == 1:
             return [1, 1024, 4096, 8192]
         elif n_robots == 5:
@@ -165,20 +165,21 @@ def get_batch_sizes_for_robot_count(n_robots, mode, clutter=False):
 
 def main():
     parser = argparse.ArgumentParser(description="Comprehensive benchmark runner for unified bench/ scripts")
-    parser.add_argument("--modes", nargs="+", default=["random", "grasp"], choices=["random", "grasp"], help="Modes to test")
-    parser.add_argument("--simulators", nargs="+", default=["genesis", "motrixsim", "isaacsim", "mujocowarp"],
-                        choices=["genesis", "motrixsim", "isaacsim", "mujocowarp"], help="Simulators to test")
-    parser.add_argument("--robots", nargs="+", type=int, default=[1, 5, 10], help="Robot counts")
-    parser.add_argument("--batches", nargs="+", type=int, default=None, help="Batch sizes (overrides automatic scaling)")
+    parser.add_argument("--modes", nargs="+", default=["franka_only", "franka_grasp"], choices=["franka_only", "franka_grasp"], help="Modes to test")
+    parser.add_argument("--simulators", nargs="+", default=["genesis", "motrixsim", "motrixsimwarp", "isaacsim", "mujocowarp"],
+                        choices=["genesis", "motrixsim", "motrixsimwarp", "isaacsim", "mujocowarp"], help="Simulators to test")
+    parser.add_argument("-N", "--robots", nargs="+", type=int, default=[1, 5, 10], help="Robot counts")
+    parser.add_argument("-B", "--batches", nargs="+", type=int, default=None, help="Batch sizes (overrides automatic scaling)")
+    parser.add_argument("-v", action="store_true", default=False, help="Enable visualization")
     parser.add_argument("--objects", nargs="+", default=["ball", "cube", "bottle"], choices=["ball", "cube", "bottle"],
-                        help="Objects for grasp mode")
-    parser.add_argument("--clutter-only", action="store_true", default=False, help="Only run clutter tests for random mode")
-    parser.add_argument("--no-clutter", action="store_true", default=False, help="Skip clutter tests for random mode")
-    parser.add_argument("--release-only", action="store_true", default=False, help="Only run release/shake tests for grasp mode")
-    parser.add_argument("--no-release", action="store_true", default=False, help="Skip release/shake tests for grasp mode")
+                        help="Objects for franka_grasp mode")
+    parser.add_argument("--no-clutter", action="store_true", default=False, help="Skip clutter tests for franka_only mode")
+    parser.add_argument("--no-shake", action="store_true", default=False, help="Skip shake tests for franka_grasp mode")
     parser.add_argument("--no-report", action="store_true", help="Skip HTML report generation")
     parser.add_argument("--report-output", type=str, default="output/bench/comparison_report.html",
                         help="Output path for HTML report (default: output/bench/comparison_report.html)")
+    parser.add_argument("--report-only", action="store_true",
+                        help="Only generate reports from existing JSON, skip running benchmarks")
     parser.add_argument("--force", action="store_true",
                         help="Force run all benchmarks, ignore existing results")
     parser.add_argument("--force-fail", action="store_true",
@@ -189,8 +190,8 @@ def main():
     print("""
 ╔══════════════════════════════════════════════════════════════╗
 ║            Unified Benchmark Suite (bench/)                  ║
-║     Genesis / Motrixsim / IsaacSim / MuJoCo-Warp             ║
-║         Random Mode + Grasp Mode (Ball/Cube/Bottle)          ║
+║  Genesis / Motrixsim / Motrixsim-Warp / IsaacSim / MuJoCo   ║
+║      Franka Only + Franka Grasp (Ball/Cube/Bottle)           ║
 ╚══════════════════════════════════════════════════════════════╝
     """)
 
@@ -223,7 +224,17 @@ def main():
         hw_type = SIMULATOR_HARDWARE_MAPPING.get(sim_key, "cpu")
         return gpu_output_dir if hw_type == "gpu" else cpu_output_dir
 
-    results = {}
+    # Early exit for report-only mode
+    if args.report_only:
+        print("\n" + "="*80)
+        print("REPORT-ONLY MODE: Skipping benchmarks, generating reports from existing data")
+        print("="*80)
+        # Jump directly to report generation (skip benchmark loop)
+        # Set empty results dict since we're not running benchmarks
+        results = {}
+    else:
+        results = {}
+
     simulator_configs = {
         "genesis": {
             "name": "Genesis",
@@ -232,6 +243,10 @@ def main():
         "motrixsim": {
             "name": "Motrixsim",
             "cmd_prefix": ["uv", "run", "bench/bench_motrixsim.py"],
+        },
+        "motrixsimwarp": {
+            "name": "Motrixsim-Warp",
+            "cmd_prefix": ["uv", "--project", "envs/motrixsim_warp", "run", "python", "-O", "bench/bench_motrixsim_warp.py"],
         },
         "isaacsim": {
             "name": "IsaacSim",
@@ -243,29 +258,24 @@ def main():
         },
     }
 
-    # Run tests for all combinations
-    for mode in args.modes:
+    # Run tests for all combinations (skip if report-only mode)
+    if not args.report_only:
+      for mode in args.modes:
         print(f"\n{'='*80}")
         print(f"MODE: {mode.upper()}")
         print(f"{'='*80}")
 
-        if mode == "random":
-            # Random mode: test all simulators x robots x batches x clutter variants
+        if mode == "franka_only":
+            # Franka only mode: test all simulators x robots x batches x clutter variants
             # Determine which clutter variants to test
-            clutter_variants = []
-            if args.clutter_only:
-                clutter_variants = [True]
-            elif args.no_clutter:
-                clutter_variants = [False]
-            else:
-                clutter_variants = [False, True]  # Default: test both
+            clutter_variants = [False] if args.no_clutter else [False, True]
 
             for sim_key in args.simulators:
                 config = simulator_configs[sim_key]
                 sim_name = config["name"]
                 cmd_prefix = config["cmd_prefix"]
                 print(f"\n{'-'*60}")
-                print(f"{sim_name} - Random Mode")
+                print(f"{sim_name} - Franka Only Mode")
                 print(f"{'-'*60}")
 
                 for n in args.robots:
@@ -282,26 +292,28 @@ def main():
                             # Check for existing result
                             if not args.force:
                                 exists, cached_per_env, cached_total = check_and_load_existing_result(
-                                    get_output_dir_for_sim(sim_key), sim_key, "random", n, b, clutter=clutter, force_fail=args.force_fail
+                                    get_output_dir_for_sim(sim_key), sim_key, "franka_only", n, b, clutter=clutter, force_fail=args.force_fail
                                 )
                                 if exists:
                                     status_label = "success" if cached_per_env else "failed"
                                     clutter_label = " (clutter)" if clutter else ""
-                                    print(f"⏭️  Skipping {sim_name} Random N={n} B={b}{clutter_label} ({status_label})")
-                                    key = f"{sim_key}_random_n{n}_b{b}"
-                                    results[key] = {"per_env": cached_per_env, "total": cached_total, "n": n, "b": b, "mode": "random", "sim": sim_key}
+                                    print(f"⏭️  Skipping {sim_name} Franka Only N={n} B={b}{clutter_label} ({status_label})")
+                                    key = f"{sim_key}_franka_only_n{n}_b{b}"
+                                    results[key] = {"per_env": cached_per_env, "total": cached_total, "n": n, "b": b, "mode": "franka_only", "sim": sim_key}
                                     continue
 
                             # Build command as list
-                            cmd = cmd_prefix + [f"-N", str(n), f"-B", str(b), "--mode", "random"]
+                            cmd = cmd_prefix + [f"-N", str(n), f"-B", str(b), "--mode", "franka_only"]
                             if clutter:
                                 cmd.append("--clutter")
-                            desc = f"{sim_name} Random - N={n}, B={b}"
+                            if args.v:
+                                cmd.append("-v")
+                            desc = f"{sim_name} Franka Only - N={n}, B={b}"
                             if clutter:
                                 desc += " (clutter)"
                             per_env, total = run_test(cmd, desc)
-                            key = f"{sim_key}_random_n{n}_b{b}"
-                            results[key] = {"per_env": per_env, "total": total, "n": n, "b": b, "mode": "random", "sim": sim_key}
+                            key = f"{sim_key}_franka_only_n{n}_b{b}"
+                            results[key] = {"per_env": per_env, "total": total, "n": n, "b": b, "mode": "franka_only", "sim": sim_key}
 
                             # Save result to JSON
                             sim_output_dir = get_output_dir_for_sim(sim_key)
@@ -312,7 +324,7 @@ def main():
                                     output_dir=sim_output_dir,
                                     sim_key=sim_key,
                                     sim_name=sim_name,
-                                    mode="random",
+                                    mode="franka_only",
                                     n=n,
                                     b=b,
                                     per_env_fps=per_env,
@@ -321,16 +333,10 @@ def main():
                                     hardware_name=hw_name,
                                 )
 
-        elif mode == "grasp":
-            # Grasp mode: test all simulators x robots x batches x objects x release variants
+        elif mode == "franka_grasp":
+            # Franka grasp mode: test all simulators x robots x batches x objects x release variants
             # Determine which release variants to test
-            release_variants = []
-            if args.release_only:
-                release_variants = [True]
-            elif args.no_release:
-                release_variants = [False]
-            else:
-                release_variants = [False, True]  # Default: test both
+            release_variants = [False] if args.no_shake else [False, True]
 
             for obj in args.objects:
                 print(f"\n{'-'*60}")
@@ -356,26 +362,28 @@ def main():
                                 # Check for existing result
                                 if not args.force:
                                     exists, cached_per_env, cached_total = check_and_load_existing_result(
-                                        get_output_dir_for_sim(sim_key), sim_key, "grasp", n, b, object_name=obj, release=release, force_fail=args.force_fail
+                                        get_output_dir_for_sim(sim_key), sim_key, "franka_grasp", n, b, object_name=obj, release=release, force_fail=args.force_fail
                                     )
                                     if exists:
-                                        release_label = " (release)" if release else ""
+                                        release_label = " (shake)" if release else ""
                                         status_label = "success" if cached_per_env else "failed"
-                                        print(f"⏭️  Skipping {sim_name} Grasp ({obj}) N={n} B={b}{release_label} ({status_label})")
-                                        key = f"{sim_key}_grasp_{obj}_n{n}_b{b}"
-                                        results[key] = {"per_env": cached_per_env, "total": cached_total, "n": n, "b": b, "mode": "grasp", "object": obj, "sim": sim_key}
+                                        print(f"⏭️  Skipping {sim_name} Franka Grasp ({obj}) N={n} B={b}{release_label} ({status_label})")
+                                        key = f"{sim_key}_franka_grasp_{obj}_n{n}_b{b}"
+                                        results[key] = {"per_env": cached_per_env, "total": cached_total, "n": n, "b": b, "mode": "franka_grasp", "object": obj, "sim": sim_key}
                                         continue
 
                                 # Build command as list
-                                cmd = cmd_prefix + [f"-N", str(n), f"-B", str(b), "--mode", "grasp", "--object", obj]
+                                cmd = cmd_prefix + [f"-N", str(n), f"-B", str(b), "--mode", "franka_grasp", "--object", obj]
                                 if release:
                                     cmd.append("-r")
-                                desc = f"{sim_name} Grasp ({obj}) - N={n}, B={b}"
+                                if args.v:
+                                    cmd.append("-v")
+                                desc = f"{sim_name} Franka Grasp ({obj}) - N={n}, B={b}"
                                 if release:
-                                    desc += " (release)"
+                                    desc += " (shake)"
                                 per_env, total = run_test(cmd, desc)
-                                key = f"{sim_key}_grasp_{obj}_n{n}_b{b}"
-                                results[key] = {"per_env": per_env, "total": total, "n": n, "b": b, "mode": "grasp", "object": obj, "sim": sim_key}
+                                key = f"{sim_key}_franka_grasp_{obj}_n{n}_b{b}"
+                                results[key] = {"per_env": per_env, "total": total, "n": n, "b": b, "mode": "franka_grasp", "object": obj, "sim": sim_key}
 
                                 # Save result to JSON
                                 sim_output_dir = get_output_dir_for_sim(sim_key)
@@ -386,7 +394,7 @@ def main():
                                         output_dir=sim_output_dir,
                                         sim_key=sim_key,
                                         sim_name=sim_name,
-                                        mode="grasp",
+                                        mode="franka_grasp",
                                         n=n,
                                         b=b,
                                         per_env_fps=per_env,
@@ -396,37 +404,38 @@ def main():
                                         hardware_name=hw_name,
                                     )
 
-    # Print summary tables
-    print("\n\n" + "="*120)
-    print("SUMMARY TABLES")
-    print("="*120)
+    # Print summary tables (skip if report-only mode)
+    if not args.report_only:
+      print("\n\n" + "="*120)
+      print("SUMMARY TABLES")
+      print("="*120)
 
-    # Collect all batch sizes used
-    all_batch_sizes = set()
-    for key in results.keys():
-        if results[key].get("b") is not None:
-            all_batch_sizes.add(results[key]["b"])
-    all_batch_sizes = sorted(all_batch_sizes)
+      # Collect all batch sizes used
+      all_batch_sizes = set()
+      for key in results.keys():
+          if results[key].get("b") is not None:
+              all_batch_sizes.add(results[key]["b"])
+      all_batch_sizes = sorted(all_batch_sizes)
 
-    # Summary for random mode
-    if "random" in args.modes:
+      # Summary for franka_only mode
+      if "franka_only" in args.modes:
         for b in all_batch_sizes:
-            # Check if any results exist for this batch size in random mode
-            has_results = any(f"_random_" in k and results[k].get("b") == b for k in results.keys())
+            # Check if any results exist for this batch size in franka_only mode
+            has_results = any(f"_franka_only_" in k and results[k].get("b") == b for k in results.keys())
             if not has_results:
                 continue
 
             print(f"\n{'='*120}")
-            print(f"RANDOM MODE - Batch Size B={b}")
+            print(f"FRANKA ONLY MODE - Batch Size B={b}")
             print(f"{'='*120}")
             print(f"{'Simulator':<20} {'N=1 (FPS)':<25} {'N=5 (FPS)':<25} {'N=10 (FPS)':<25}")
             print("-"*120)
 
             for sim_key in args.simulators:
                 sim_name = simulator_configs[sim_key]["name"]
-                n1_key = f"{sim_key}_random_n1_b{b}"
-                n5_key = f"{sim_key}_random_n5_b{b}"
-                n10_key = f"{sim_key}_random_n10_b{b}"
+                n1_key = f"{sim_key}_franka_only_n1_b{b}"
+                n5_key = f"{sim_key}_franka_only_n5_b{b}"
+                n10_key = f"{sim_key}_franka_only_n10_b{b}"
 
                 n1 = results[n1_key].get("per_env") if n1_key in results else None
                 n5 = results[n5_key].get("per_env") if n5_key in results else None
@@ -439,26 +448,26 @@ def main():
 
                 print(f"{sim_name:<20} {n1_str:<25} {n5_str:<25} {n10_str:<25}")
 
-    # Summary for grasp mode
-    if "grasp" in args.modes:
+      # Summary for franka_grasp mode
+      if "franka_grasp" in args.modes:
         for obj in args.objects:
             for b in all_batch_sizes:
-                # Check if any results exist for this batch size and object in grasp mode
-                has_results = any(f"_grasp_{obj}_" in k and results[k].get("b") == b for k in results.keys())
+                # Check if any results exist for this batch size and object in franka_grasp mode
+                has_results = any(f"_franka_grasp_{obj}_" in k and results[k].get("b") == b for k in results.keys())
                 if not has_results:
                     continue
 
                 print(f"\n{'='*120}")
-                print(f"GRASP MODE ({obj.upper()}) - Batch Size B={b}")
+                print(f"FRANKA GRASP MODE ({obj.upper()}) - Batch Size B={b}")
                 print(f"{'='*120}")
                 print(f"{'Simulator':<20} {'N=1 (FPS)':<25} {'N=5 (FPS)':<25} {'N=10 (FPS)':<25}")
                 print("-"*120)
 
                 for sim_key in args.simulators:
                     sim_name = simulator_configs[sim_key]["name"]
-                    n1_key = f"{sim_key}_grasp_{obj}_n1_b{b}"
-                    n5_key = f"{sim_key}_grasp_{obj}_n5_b{b}"
-                    n10_key = f"{sim_key}_grasp_{obj}_n10_b{b}"
+                    n1_key = f"{sim_key}_franka_grasp_{obj}_n1_b{b}"
+                    n5_key = f"{sim_key}_franka_grasp_{obj}_n5_b{b}"
+                    n10_key = f"{sim_key}_franka_grasp_{obj}_n10_b{b}"
 
                     n1 = results[n1_key].get("per_env") if n1_key in results else None
                     n5 = results[n5_key].get("per_env") if n5_key in results else None
@@ -471,53 +480,53 @@ def main():
 
                     print(f"{sim_name:<20} {n1_str:<25} {n5_str:<25} {n10_str:<25}")
 
-    # Print throughput comparison (total FPS)
-    print("\n\n" + "="*120)
-    print("THROUGHPUT COMPARISON (Total FPS)")
-    print("="*120)
+      # Print throughput comparison (total FPS)
+      print("\n\n" + "="*120)
+      print("THROUGHPUT COMPARISON (Total FPS)")
+      print("="*120)
 
-    if "random" in args.modes:
+      if "franka_only" in args.modes:
         for b in all_batch_sizes:
-            # Check if any results exist for this batch size in random mode
-            has_results = any(f"_random_" in k and results[k].get("b") == b for k in results.keys())
+            # Check if any results exist for this batch size in franka_only mode
+            has_results = any(f"_franka_only_" in k and results[k].get("b") == b for k in results.keys())
             if not has_results:
                 continue
 
             print(f"\n{'='*60}")
-            print(f"RANDOM MODE - Batch Size B={b}")
+            print(f"FRANKA ONLY MODE - Batch Size B={b}")
             print(f"{'='*60}")
 
             for n in args.robots:
                 print(f"\n  N={n} robots:")
                 for sim_key in args.simulators:
                     sim_name = simulator_configs[sim_key]["name"]
-                    total = results.get(f"{sim_key}_random_n{n}_b{b}", {}).get("total")
+                    total = results.get(f"{sim_key}_franka_only_n{n}_b{b}", {}).get("total")
                     if total:
                         print(f"    {sim_name:<15}: {total:>12,.0f} FPS")
 
-    if "grasp" in args.modes:
+      if "franka_grasp" in args.modes:
         for obj in args.objects:
             for b in all_batch_sizes:
-                # Check if any results exist for this batch size and object in grasp mode
-                has_results = any(f"_grasp_{obj}_" in k and results[k].get("b") == b for k in results.keys())
+                # Check if any results exist for this batch size and object in franka_grasp mode
+                has_results = any(f"_franka_grasp_{obj}_" in k and results[k].get("b") == b for k in results.keys())
                 if not has_results:
                     continue
 
                 print(f"\n{'='*60}")
-                print(f"GRASP MODE ({obj.upper()}) - Batch Size B={b}")
+                print(f"FRANKA GRASP MODE ({obj.upper()}) - Batch Size B={b}")
                 print(f"{'='*60}")
 
                 for n in args.robots:
                     print(f"\n  N={n} robots:")
                     for sim_key in args.simulators:
                         sim_name = simulator_configs[sim_key]["name"]
-                        total = results.get(f"{sim_key}_grasp_{obj}_n{n}_b{b}", {}).get("total")
+                        total = results.get(f"{sim_key}_franka_grasp_{obj}_n{n}_b{b}", {}).get("total")
                         if total:
                             print(f"    {sim_name:<15}: {total:>12,.0f} FPS")
 
-    print("\n" + "="*120)
-    print("BENCHMARK COMPLETE")
-    print("="*120)
+      print("\n" + "="*120)
+      print("BENCHMARK COMPLETE")
+      print("="*120)
 
     # Generate HTML reports (4 separate reports)
     if REPORT_AVAILABLE and not args.no_report:
@@ -540,10 +549,10 @@ def main():
                 print(f"   Warning: Could not delete {html_file.name}: {e}")
 
         report_configs = [
-            ("random_static", "Random Static", "random", False, False),
-            ("random_clutter", "Random Clutter", "random", True, False),
-            ("grasp_static", "Grasp Static", "grasp", False, False),
-            ("grasp_shake", "Grasp Shake", "grasp", False, True),
+            ("franka_only", "Franka Only", "franka_only", False, False),
+            ("franka_only_clutter", "Franka Only Clutter", "franka_only", True, False),
+            ("franka_grasp", "Franka Grasp", "franka_grasp", False, False),
+            ("franka_grasp_shake", "Franka Grasp Shake", "franka_grasp", False, True),
         ]
 
         for report_name, title, mode, clutter, release in report_configs:

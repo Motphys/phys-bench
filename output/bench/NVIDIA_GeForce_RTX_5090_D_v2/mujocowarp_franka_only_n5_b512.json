@@ -1,0 +1,15 @@
+{
+  "simulator": "mujocowarp",
+  "simulator_name": "MuJoCo-Warp",
+  "mode": "franka_only",
+  "n_robots": 5,
+  "batch_size": 512,
+  "per_env_fps": 1083.99,
+  "total_fps": 555003.86,
+  "object": null,
+  "clutter": false,
+  "release": false,
+  "status": "success",
+  "timestamp": "2026-01-30T16:19:33.193046",
+  "hardware_name": "NVIDIA_GeForce_RTX_5090_D_v2"
+}

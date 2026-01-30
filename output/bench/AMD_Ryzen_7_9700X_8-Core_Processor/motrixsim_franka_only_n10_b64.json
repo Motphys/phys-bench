@@ -1,0 +1,15 @@
+{
+  "simulator": "motrixsim",
+  "simulator_name": "Motrixsim",
+  "mode": "franka_only",
+  "n_robots": 10,
+  "batch_size": 64,
+  "per_env_fps": 1426.51,
+  "total_fps": 91296.85,
+  "object": null,
+  "clutter": false,
+  "release": false,
+  "status": "success",
+  "timestamp": "2026-01-30T16:09:40.554943",
+  "hardware_name": "AMD_Ryzen_7_9700X_8-Core_Processor"
+}

@@ -15,7 +15,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-N", type=int, default=1, choices=[1, 5, 10], help="Number of robots")
 parser.add_argument("-B", type=int, default=1, help="Batch size / parallel environments")
 parser.add_argument("-v", action="store_true", default=False, help="Enable visualization")
-parser.add_argument("--mode", type=str, default="random", choices=["random", "grasp"], help="Scenario: random or grasp")
+parser.add_argument("--mode", type=str, default="franka_only", choices=["franka_only", "franka_grasp"], help="Scenario: franka_only or franka_grasp")
 parser.add_argument("--object", type=str, default="ball", choices=["ball", "cube", "bottle"], help="Object for grasp mode")
 parser.add_argument("-r", action="store_true", default=False, help="Random noise during grasp benchmark phase")
 
@@ -66,8 +66,8 @@ OBJECT_CONFIGS = {
 }
 
 ########################## load model ##########################
-if args.mode == "random":
-    # Random mode: load base scene and attach N robots
+if args.mode == "franka_only":
+    # Franka only mode: load base scene and attach N robots
     scene_path = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "xml/base_scene.xml")
     )
@@ -90,10 +90,10 @@ if args.mode == "random":
     model = scene.build(150)
     model.options.timestep = 0.01
 
-elif args.mode == "grasp":
-    assert args.N == 1, "Grasp mode only supports N=1 robot currently"
+elif args.mode == "franka_grasp":
+    assert args.N == 1, "Franka grasp mode only supports N=1 robot currently"
 
-    # Grasp mode with N=1: load pre-made grasp scene
+    # Franka grasp mode with N=1: load pre-made grasp scene
     model_path = os.path.abspath(
         os.path.join(os.path.dirname(__file__), f"../assets/grasp/pick_{args.object}.xml")
     )
@@ -124,7 +124,7 @@ else:
 sim_dt = model.options.timestep
 
 ########################## mode-specific warmup and benchmark ##########################
-if args.mode == "random":
+if args.mode == "franka_only":
     print(f"Warmup: {n_robots} robots to initial position (200 steps)...")
 
     # Create warmup control for all robots
@@ -243,7 +243,7 @@ if args.mode == "random":
         print(f"per env: {benchmark_steps / (t1 - t0):,.2f} FPS")
         print(f"total  : {benchmark_steps / (t1 - t0) * n_envs:,.2f} FPS")
 
-else:  # grasp mode
+else:  # franka_grasp mode
     config = OBJECT_CONFIGS[args.object]
     grasp_qpos = config["grasp_qpos"]
     lift_steps = config["lift_steps"]
