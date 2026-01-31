@@ -1,0 +1,10 @@
+{
+  "engine": "motrix",
+  "N": 1,
+  "B": 128,
+  "T": 1,
+  "per_env_fps": 1398.22,
+  "total_fps": 178972.34,
+  "timestamp": "2026-01-31T14:33:05.040844",
+  "status": "success"
+}
