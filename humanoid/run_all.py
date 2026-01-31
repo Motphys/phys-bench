@@ -219,7 +219,7 @@ def main():
         "--robots", nargs="+", type=int, default=[1, 5, 10], help="Humanoid counts (N)"
     )
     parser.add_argument(
-        "--batches", nargs="+", type=int, default=[1, 512, 1024], help="Batch sizes (B)"
+        "--batches", nargs="+", type=int, default=[1, 128, 512, 1024], help="Batch sizes (B)"
     )
     parser.add_argument(
         "--output-dir",

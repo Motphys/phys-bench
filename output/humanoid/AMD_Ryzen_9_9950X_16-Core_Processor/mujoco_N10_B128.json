@@ -1,0 +1,10 @@
+{
+  "engine": "mujoco",
+  "N": 10,
+  "B": 128,
+  "T": 32,
+  "per_env_fps": 79.84,
+  "total_fps": 10220.1,
+  "timestamp": "2026-01-31T14:34:31.460332",
+  "status": "success"
+}
